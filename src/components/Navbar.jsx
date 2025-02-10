@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import NavLink from "./Navlink";
 import { AuthContext } from '../contexts/AuthContext'
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom"; // Ajoutez cette ligne
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,15 +19,12 @@ const Navbar = () => {
       <header className="bg-white dark:bg-gray-900">
         <nav className="container mx-auto p-6 lg:flex lg:items-center lg:justify-between">
           <div className="flex items-center justify-between">
-            <div>
-              <a
-                className="text-2xl font-bold text-gray-700 hover:text-gray-700 dark:text-white dark:hover:text-gray-300 lg:text-3xl"
-                href="#"
-              >
-                CHI FOU MI
-              </a>
-            </div>
-
+          <Link
+              to="/"
+              className="text-2xl font-bold text-gray-700 hover:text-gray-700 dark:text-white dark:hover:text-gray-300 lg:text-3xl"
+            >
+              CHI FOU MI
+            </Link>
             {/* Mobile menu button */}
             <div className="flex lg:hidden">
               <button
@@ -78,7 +76,7 @@ const Navbar = () => {
               <NavLink to="/auth">Login</NavLink>
             ) : (
               <>
-                <NavLink to="#">Créer une partie</NavLink>
+                <NavLink to="/history">Mon historique</NavLink>
                 <NavLink to="/matches">Mes parties</NavLink>
                 <NavLink to="/" onClick={handleLogout}>Logout</NavLink>
               </>
