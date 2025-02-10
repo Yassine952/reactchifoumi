@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import useSSEListener from "../hooks/useSSEListener"; 
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -8,6 +9,13 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token"); // Récupération du token JWT
+
+  useSSEListener(matchId, token, (data) => {
+    console.log("Mise à jour via SSE :", data);
+    if (data.type === "NEW_TURN") {
+      setCurrentTurn(data.payload.turnId);
+    }
+  });
 
   useEffect(() => {
     const fetchMatch = async () => {
