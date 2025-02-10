@@ -12,9 +12,10 @@ export const AuthProvider = ({ children }) => {
   // Charger l'utilisateur si un token est déjà présent
   useEffect(() => {
     const savedToken = getToken();
-    if (savedToken) {
+    const savedUsername = getUsername();
+    if (savedToken && savedUsername) {
       setToken(savedToken);
-      setUser({ username: "Utilisateur" }); // À remplacer par un appel API si nécessaire
+      setUser({ username: savedUsername });
     }
   }, []);
 
