@@ -33,6 +33,7 @@ const MatchesPage = () => {
   };
 
   useEffect(() => {
+    if (token === null) return;
     if (!token) {
       navigate('/auth');
     } else {

@@ -4,8 +4,7 @@ import notyf from "../utils/notyf";
 
 const AuthPage = () => {
   return (
-    // bg-red-400 pour tester tailwind
-    <div className="auth-page bg-red-400"> 
+    <div className="auth-page"> 
       <h1>Bienvenue sur l'application Chifoumi</h1>
       <AuthForm />
     </div>
