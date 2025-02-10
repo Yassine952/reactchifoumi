@@ -11,7 +11,4 @@ const AuthPage = () => {
   );
 };
 
-// Mise en place de la notyf uniquement pour tester l'installation
-notyf.success("Bienvenue sur l'application.");
-
 export default AuthPage;

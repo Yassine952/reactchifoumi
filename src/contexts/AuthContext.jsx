@@ -1,5 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { login as authLogin, getToken, register as authRegister, logout as authLogout } from "../services/authService";
+import notyf from "../../src/utils/notyf"; // Import de Notyf
+
 
 export const AuthContext = createContext();
 
@@ -21,6 +23,7 @@ export const AuthProvider = ({ children }) => {
       const data = await authLogin(username, password); // Appelle `authService.login`
       setUser({ username }); // Met à jour l'état utilisateur
       setToken(getToken()); // Récupère le token depuis localStorage
+      notyf.success(`Bienvenue ${username} !`);
     } catch (error) {
       console.error("Erreur de connexion :", error.message);
       throw error;
@@ -43,6 +46,7 @@ export const AuthProvider = ({ children }) => {
     authLogout(); // Supprime le token du stockage
     setToken(null);
     setUser(null);
+    notyf.success("Au revoir !");
   };
 
   return (
