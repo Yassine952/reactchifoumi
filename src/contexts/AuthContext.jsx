@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { login as authLogin, getToken, register as authRegister, logout as authLogout } from "../services/authService";
+import { login as authLogin, getToken, register as authRegister, logout as authLogout, getUsername } from "../services/authService";
 import notyf from "../../src/utils/notyf"; // Import de Notyf
 
 
