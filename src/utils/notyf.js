@@ -12,7 +12,7 @@ const notyf = new Notyf({
   types: [
     {
       type: 'success',
-      background: 'green',
+      background: '#3b82f6',
       icon: {
         className: 'fas fa-check',
         tagName: 'i',

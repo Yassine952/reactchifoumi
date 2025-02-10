@@ -80,7 +80,7 @@ const Navbar = () => {
               <>
                 <NavLink to="#">Créer une partie</NavLink>
                 <NavLink to="/matches">Mes parties</NavLink>
-                <NavLink onClick={handleLogout}>Logout</NavLink>
+                <NavLink to="/" onClick={handleLogout}>Logout</NavLink>
               </>
             )}
           </div>
