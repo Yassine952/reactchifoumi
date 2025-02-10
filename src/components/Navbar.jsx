@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import NavLink from "./Navlink";
-
+import { AuthContext } from '../contexts/AuthContext'
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { token, logout } = useContext(AuthContext); // Récupération du token et logout
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/"); // Rediriger vers la page d'accueil après déconnexion
+  };
 
   return (
     <div>
@@ -65,12 +73,17 @@ const Navbar = () => {
             }`}
           >
             <div className="flex flex-col space-y-4 lg:mt-0 lg:flex-row lg:space-y-0">
-              <NavLink href="#">Créer une partie</NavLink>
-
-              <NavLink href="#">Mes parties</NavLink>
-
+            {/* Affichage conditionnel des boutons Login / Logout */}
+            {!token ? (
               <NavLink to="/auth">Login</NavLink>
-            </div>
+            ) : (
+              <>
+                <NavLink to="#">Créer une partie</NavLink>
+                <NavLink to="/matches">Mes parties</NavLink>
+                <NavLink onClick={handleLogout}>Logout</NavLink>
+              </>
+            )}
+          </div>
           </div>
         </nav>
       </header>

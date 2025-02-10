@@ -1,14 +1,25 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-const NavLink = ({ to, children }) => {
+const NavLink = ({ to, onClick, children }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(); // Exécuter l'action si `onClick` est fourni (ex: logout)
+    }
+    if (to) {
+      navigate(to); // Rediriger si `to` est fourni
+    }
+  };
+
   return (
-    <Link
-      to={to}
-      className="text-gray-700 hover:text-gray-900 lg:mx-6 border-b-2 border-transparent hover:border-red-400"
+    <button
+      onClick={handleClick}
+      className="text-gray-700 hover:text-gray-900 lg:mx-6 border-b-2 border-transparent hover:bg-gray-200"
     >
       {children}
-    </Link>
+    </button>
   );
 };
 
