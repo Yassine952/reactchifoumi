@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import useSSEListener from "../hooks/useSSEListener";
 import notyf from "../utils/notyf";
+import { launchConfetti } from '../utils/confetti';
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -10,7 +11,7 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
-
+  launchConfetti();
   // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
   const handleSSEEvent = useCallback((data) => {
     console.log("Données reçues via SSE :", data);
@@ -22,7 +23,7 @@ const MatchDetail = () => {
       console.log("Type d'événement reçu :", event.type);
 
       if (event.type === "TURN_ENDED") {
-        console.log(`Tour ${event.payload.newTurnId} terminé, gagnant: ${event.payload.winner}`);
+        console.log(`Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`);
         setCurrentTurn(event.payload.newTurnId);
       } else if (event.type === "MATCH_ENDED") {
         const username = localStorage.getItem("username");
@@ -31,6 +32,7 @@ const MatchDetail = () => {
 
         if (username === winner) {
           notyf.success("Vous avez gagné !");
+          launchConfetti();
         } else if (winner === "draw") {
           notyf.error("Égalité !");
         } else {
