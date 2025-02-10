@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
       notyf.success(`Bienvenue ${username} !`);
     } catch (error) {
       console.error("Erreur de connexion :", error.message);
+      notyf.error("Échec de la connexion");
       throw error;
     }
   };
