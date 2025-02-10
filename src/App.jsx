@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Home from "./pages/Home";
 import MatchDetail from "./pages/MatchDetail";
+import HistoryPage from "./pages/HistoryPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/matches" element={<MatchesPage />} />
+            <Route path="/history" element={<HistoryPage />} />
             <Route path="/matches/:matchId" element={<MatchDetail />} />
           </Routes>
         </Router>
