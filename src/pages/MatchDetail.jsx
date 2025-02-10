@@ -1,57 +1,94 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import useSSEListener from "../hooks/useSSEListener"; 
+import useSSEListener from "../hooks/useSSEListener";
+import notyf from "../utils/notyf";
 
 const MatchDetail = () => {
   const { matchId } = useParams();
   const [match, setMatch] = useState(null);
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token"); // Récupération du token JWT
+  const token = localStorage.getItem("token");
 
-  useSSEListener(matchId, token, (data) => {
-    console.log("Mise à jour via SSE :", data);
-    if (data.type === "NEW_TURN") {
-      setCurrentTurn(data.payload.turnId);
-    }
-  });
+  // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
+  const handleSSEEvent = useCallback((data) => {
+    console.log("Données reçues via SSE :", data);
+    
+    // S'assurer que data est toujours un tableau
+    const events = Array.isArray(data) ? data : [data];
+
+    events.forEach((event) => {
+      console.log("Type d'événement reçu :", event.type);
+
+      if (event.type === "TURN_ENDED") {
+        console.log(`Tour ${event.payload.newTurnId} terminé, gagnant: ${event.payload.winner}`);
+        setCurrentTurn(event.payload.newTurnId);
+      } else if (event.type === "MATCH_ENDED") {
+        const username = localStorage.getItem("username");
+        const winner = event.payload.winner;
+        console.log("MATCH TERMINÉ ! Gagnant :", winner);
+
+        if (username === winner) {
+          notyf.success("Vous avez gagné !");
+        } else if (winner === "draw") {
+          notyf.error("Égalité !");
+        } else {
+          notyf.error("Vous avez perdu...");
+        }
+
+        // Marquer le match comme terminé pour désactiver l'interface de jeu
+        setMatch((prevMatch) => ({
+          ...prevMatch,
+          ended: true,
+        }));
+      }
+    });
+  }, []);
+
+  // Définir l'activation de l'écoute SSE : on arrête dès que le match est terminé.
+  const isActive = match ? !match.ended : true;
+  useSSEListener(matchId, token, handleSSEEvent, isActive);
 
   useEffect(() => {
     const fetchMatch = async () => {
-        try {
-          const response = await axios.get(`http://localhost:3002/matches/${matchId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-      
-          console.log("Réponse API :", response.data); // DEBUG
-      
-          if (!response.data || Object.keys(response.data).length === 0) {
-            throw new Error("Match non trouvé !");
-          }
-      
-          setMatch(response.data);
-          setCurrentTurn(response.data.turns.length + 1); // Définit le prochain tour
-          setLoading(false);
-        } catch (error) {
-          console.error("Erreur lors de la récupération du match", error);
-          setLoading(false); // Arrêter le chargement même en cas d'erreur
+      try {
+        const response = await axios.get(`http://localhost:3002/matches/${matchId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("Réponse API :", response.data);
+
+        if (!response.data || Object.keys(response.data).length === 0) {
+          throw new Error("Match non trouvé !");
         }
-      };
-      
+
+        setMatch(response.data);
+        // Le tour initial est basé sur le nombre de tours déjà joués
+        setCurrentTurn(response.data.turns.length + 1);
+        setLoading(false);
+      } catch (error) {
+        console.error("Erreur lors de la récupération du match", error);
+        setLoading(false);
+      }
+    };
 
     fetchMatch();
   }, [matchId, token]);
 
   const handleMove = async (move) => {
     try {
-      await axios.post(
+      const response = await axios.post(
         `http://localhost:3002/matches/${matchId}/turns/${currentTurn}`,
         { move },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert("Coup joué !");
-      window.location.reload(); // Recharge la page pour voir la mise à jour
+
+      console.log("Coup joué :", response.data);
+      setMatch((prevMatch) => ({
+        ...prevMatch,
+        turns: [...prevMatch.turns, { [match.user1.username]: move }],
+      }));
     } catch (error) {
       console.error("Erreur lors de l'envoi du coup", error);
     }
@@ -63,14 +100,12 @@ const MatchDetail = () => {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold">Match ID : {match._id}</h2>
-      <p>
-        <strong>Joueur 1 :</strong> {match.user1.username}
-      </p>
+      <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
       <p>
         <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
       </p>
 
-      {match.user2 && (
+      {match.user2 && !match.ended && (
         <div className="mt-4">
           <p className="font-bold">Tour actuel : {currentTurn}</p>
           <p>Fais ton choix :</p>

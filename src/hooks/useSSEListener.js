@@ -1,58 +1,66 @@
 import { useEffect, useRef } from "react";
 import { EventSourcePolyfill } from "event-source-polyfill";
-import notyf from "../utils/notyf"; 
 
-const useSSEListener = (matchId, token, onEvent) => {
-  const processedEvents = useRef(new Set()); // Stocke les événements déjà reçus
+/**
+ * Hook d'écoute des événements SSE.
+ * @param {string} matchId - L'ID du match.
+ * @param {string} token - Le token d'authentification.
+ * @param {Function} onEvent - Callback appelé dès qu'un événement est reçu.
+ * @param {boolean} active - Si false, le hook ne crée pas (ou recrée) la connexion SSE.
+ */
+const useSSEListener = (matchId, token, onEvent, active = true) => {
+  const eventSourceRef = useRef(null);
 
   useEffect(() => {
+    if (!active) { // Si le match est terminé, ne rien faire.
+      return;
+    }
     if (!matchId || !token) return;
 
-    const eventSource = new EventSourcePolyfill(`http://localhost:3002/matches/${matchId}/subscribe`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const eventSource = new EventSourcePolyfill(
+      `http://localhost:3002/matches/${matchId}/subscribe`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    eventSourceRef.current = eventSource;
 
     eventSource.onmessage = (event) => {
-      const eventData = JSON.parse(event.data);
+      let eventData;
+      try {
+        eventData = JSON.parse(event.data);
+      } catch (error) {
+        console.error("Erreur lors du parsing des données SSE :", error);
+        return;
+      }
 
-      const events = Array.isArray(eventData) ? eventData : [eventData];
+      // Appel du callback avec les données reçues
+      if (onEvent) {
+        onEvent(eventData);
+      }
 
-      events.forEach((data) => {
-        // Vérifie si l'événement a déjà été traité
-        const eventKey = `${data.type}-${data.matchId}-${data.payload?.user || ""}`;
-        if (processedEvents.current.has(eventKey)) return;
-        
-        processedEvents.current.add(eventKey); // Ajoute l'événement traité
-
-        if (onEvent) onEvent(data);
-
-        if (data.type === "PLAYER1_JOIN" || data.type === "PLAYER2_JOIN") {
-          console.log("🎯 Event PLAYER JOIN détecté : ", data.type);
-          const currentUser = localStorage.getItem("username");
-
-          console.log("heeeeyyyyyyyy", data.payload.user, ' + ', currentUser)
-
-          if (data.payload.user === currentUser) {
-            notyf.success("Vous avez rejoint la partie !");
-            console.log("✅ Notification : Vous avez rejoint la partie !");
-          } else {
-            notyf.success(`${data.payload.user} a rejoint la partie !`);
-            console.log(`✅ Notification : ${data.payload.user} a rejoint la partie !`);
-          }
+      // Si un événement MATCH_ENDED est détecté, fermer la connexion
+      if (Array.isArray(eventData)) {
+        if (eventData.some((ev) => ev.type === "MATCH_ENDED")) {
+          console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté dans un tableau.");
+          eventSource.close();
         }
-      });
+      } else if (eventData && eventData.type === "MATCH_ENDED") {
+        console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté.");
+        eventSource.close();
+      }
     };
 
     eventSource.onerror = (error) => {
-      console.error("❌ Erreur SSE :", error);
+      console.error("Erreur SSE :", error);
       eventSource.close();
     };
 
     return () => {
-      console.log("🔌 Fermeture de la connexion SSE");
+      console.log("Fermeture de la connexion SSE (nettoyage)");
       eventSource.close();
     };
-  }, [matchId, token, onEvent]);
+  }, [matchId, token, onEvent, active]);
 
   return null;
 };
