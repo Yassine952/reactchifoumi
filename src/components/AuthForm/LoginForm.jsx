@@ -1,13 +1,13 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../contexts/AuthContext';
+import notyf from '../../utils/notyf'; 
 
 const LoginForm = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,14 +15,13 @@ const LoginForm = () => {
       await login(username, password);
       navigate('/matches');
     } catch (err) {
-      setError(err.message);
+      // ne rien faire car dans AuthContext on affiche la notyf
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <h2>Connexion</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       <div>
         <label>Nom d'utilisateur :</label>
         <input

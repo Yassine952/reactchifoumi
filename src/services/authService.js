@@ -14,7 +14,7 @@ export const login = async (username, password) => {
 
     if (token) {
       localStorage.setItem('token', token); // On stocke le token JWT dans le local storage
-      console.log('Token stocké :', token);
+      localStorage.setItem('username', username);
     }
 
     return response.data;
@@ -45,8 +45,14 @@ export const getToken = () => {
   return localStorage.getItem('token');
 };
 
+// Fonction pour récupérer le username stocké
+export const getUsername = () => {
+  return localStorage.getItem('username');
+};
+
 // Fonction pour déconnexion (supprime le token)
 export const logout = () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('username'); 
   console.log('Déconnecté, token supprimé');
 };
