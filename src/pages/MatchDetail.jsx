@@ -11,7 +11,7 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
-  launchConfetti();
+
   // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
   const handleSSEEvent = useCallback((data) => {
     console.log("Données reçues via SSE :", data);
@@ -31,10 +31,11 @@ const MatchDetail = () => {
         console.log("MATCH TERMINÉ ! Gagnant :", winner);
 
         if (username === winner) {
-          notyf.success("Vous avez gagné !");
+          notyf.success("Victoire !");
           launchConfetti();
         } else if (winner === "draw") {
           notyf.error("Égalité !");
+          success();
         } else {
           notyf.error("Vous avez perdu...");
         }
@@ -92,6 +93,7 @@ const MatchDetail = () => {
         turns: [...prevMatch.turns, { [match.user1.username]: move }],
       }));
     } catch (error) {
+      notyf.error("Ce n'était pas à vous de jouer !")
       console.error("Erreur lors de l'envoi du coup", error);
     }
   };
@@ -100,7 +102,7 @@ const MatchDetail = () => {
   if (!match) return <p>Match introuvable.</p>;
 
   return (
-    <div className="p-4">
+    <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
       <h2 className="text-xl font-bold">Match ID : {match._id}</h2>
       <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
       <p>
