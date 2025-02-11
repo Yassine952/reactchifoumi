@@ -43,8 +43,8 @@ const MatchDetail = () => {
           notyf.success("Victoire !");
           launchConfetti();
         } else if (winner === "draw") {
-          notyf.error("Égalité !");
-          success();
+          notyf.success("Égalité !");
+          launchConfetti();
         } else {
           notyf.error("Vous avez perdu...");
         }
@@ -123,15 +123,24 @@ const MatchDetail = () => {
           <p className="font-bold">Tour actuel : {currentTurn}</p>
           <p>Fais ton choix :</p>
           <div className="flex space-x-4">
-            <button className="btn" onClick={() => handleMove("rock")}>
-              Pierre
-            </button>
-            <button className="btn" onClick={() => handleMove("paper")}>
-              Papier
-            </button>
-            <button className="btn" onClick={() => handleMove("scissors")}>
-              Ciseaux
-            </button>
+            <img 
+              src="https://www.mineraux.fr/wp-content/uploads/2020/12/pierre-meteorite-caracteristiques.jpg" 
+              alt="Pierre" 
+              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("rock")}
+            />
+            <img 
+              src="https://www.coquard.fr/wp-content/uploads/911aau-papier-camembert-210x210-emballages-photo1.jpeg" 
+              alt="Papier" 
+              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("paper")}
+            />
+            <img 
+              src="https://www.10doigts.fr/assets/generics/ciseaux-decolier-droitier-1614.jpg" 
+              alt="Ciseaux" 
+              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("scissors")}
+            />
           </div>
         </div>
       )}
