@@ -11,6 +11,7 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
+  const [history, setHistory] = useState([]); 
 
   // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
   const handleSSEEvent = useCallback((data) => {
@@ -25,6 +26,14 @@ const MatchDetail = () => {
       if (event.type === "TURN_ENDED") {
         console.log(`Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`);
         setCurrentTurn(event.payload.newTurnId);
+        setHistory((prevHistory) => [
+          ...prevHistory,
+          {
+            turnId: data.payload.newTurnId - 1, // Le tour terminé
+            winner: data.payload.winner,
+          },
+        ]);
+
       } else if (event.type === "MATCH_ENDED") {
         const username = localStorage.getItem("username");
         const winner = event.payload.winner;
@@ -103,7 +112,7 @@ const MatchDetail = () => {
 
   return (
     <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
-      <h2 className="text-xl font-bold">Match ID : {match._id}</h2>
+      <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
       <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
       <p>
         <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
@@ -126,6 +135,19 @@ const MatchDetail = () => {
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <h3 className="text-lg font-bold">Historique des tours</h3>
+        <ul className="mt-2">
+          {history.map((turn, index) => (
+            <li key={index} className="p-2 border-b">
+              <p><strong>Tour {turn.turnId}</strong>:  </p>
+              <p><strong>Gagnant :</strong> {turn.winner}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
     </div>
   );
 };
