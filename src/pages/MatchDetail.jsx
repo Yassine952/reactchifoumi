@@ -29,8 +29,8 @@ const MatchDetail = () => {
         setHistory((prevHistory) => [
           ...prevHistory,
           {
-            turnId: data.payload.newTurnId - 1, // Le tour terminé
-            winner: data.payload.winner,
+            turnId: event.payload.newTurnId - 1, // Le tour terminé
+            winner: event.payload.winner,
           },
         ]);
 
