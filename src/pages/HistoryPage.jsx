@@ -1,9 +1,17 @@
+import MatchListPage from "../components/MatchListPage";
+
 const HistoryPage = () => {
-  
   return (
-    <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
-      <h1>Todo : implémenter l'historique</h1>
-    </div>
+    <MatchListPage
+      title="Historique des parties"
+      filter={(matches) =>
+        matches.filter(
+          (match) =>
+            match.winner !== undefined && match.winner !== null ||
+            (match.turns.length > 0 && match.turns.every((turn) => turn.winner === "draw"))
+        )
+      }
+    />
   );
 };
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import ButtonLink from "./ButtonLink";
+
 
 const MatchesList = ({ matches }) => {
   if (!matches.length) {
@@ -14,9 +16,9 @@ const MatchesList = ({ matches }) => {
             <strong>Joueur 1 :</strong> {match.user1?.username || 'Inconnu'}<br />
             <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : 'En attente'}
           </p>
-          <Link to={`/matches/${match._id}`} className="text-blue-500 hover:underline">
-            Voir le match
-          </Link>
+            <div className='mt-3'>
+              <ButtonLink to={`/matches/${match._id}`}>Voir le match</ButtonLink>
+            </div>
         </div>
       ))}
     </div>
