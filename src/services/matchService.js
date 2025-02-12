@@ -27,3 +27,8 @@ export const createMatch = async (token) => {
   }
   return response.json();
 };
+
+export const isMatchFinished = (match) => {
+  const maxTurns = 3;
+  if (match.turns.length >= maxTurns) return true;
+};

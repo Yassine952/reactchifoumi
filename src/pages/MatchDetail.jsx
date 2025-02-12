@@ -4,6 +4,7 @@ import axios from "axios";
 import useSSEListener from "../hooks/useSSEListener";
 import notyf from "../utils/notyf";
 import { launchConfetti } from '../utils/confetti';
+import { isMatchFinished } from "../services/matchService";
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -146,7 +147,7 @@ const MatchDetail = () => {
         <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
       </p>
 
-      {match.user2 && !match.ended && (
+      {match.user2 && !isMatchFinished(match) && (
         <div className="mt-4">
           <p className="font-bold">Tour actuel : {currentTurn}</p>
           <p>Fais ton choix :</p>
