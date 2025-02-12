@@ -11,11 +11,19 @@ const MatchesPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const fetchMatches = async () => {
+  const fetchMatches = async () => { // Ici on récupère uniquement les matchs en cours
     setLoading(true);
     try {
       const data = await getMatches(token);
-      setMatches(data);
+
+      const ongoingMatches = data.filter(match => {
+        const noWinnerYet = match.winner === undefined || match.winner === null; // Vérifie si winner est undefined ou null
+        
+        const allTurnsAreDraws = match.turns.length > 0 && match.turns.every(turn => turn.winner === "draw"); // Vérifie si tous les tours sont des égalités
+  
+        return noWinnerYet && !allTurnsAreDraws; // Un match est en cours s'il n'a pas de gagnant ET s'il y a au moins un tour non égalitaire
+      });
+      setMatches(ongoingMatches);
     } catch (err) {
       setError(err.message);
     } finally {
