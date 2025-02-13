@@ -179,8 +179,17 @@ const MatchDetail = () => {
         <ul className="mt-2">
           {history.map((turn, index) => (
             <li key={index} className="p-2 border-b">
-              <p><strong>Tour {turn.turnId}</strong>:  </p>
-              <p><strong>Gagnant :</strong> {turn.winner}</p>
+              <p><strong>Tour {turn.turnId}</strong>:</p>
+              <p>
+                <strong>Gagnant :</strong>{" "}
+                {turn.winner === "draw"
+                  ? "Égalité"
+                  : turn.winner === "user1"
+                  ? match.user1.username
+                  : turn.winner === "user2"
+                  ? match.user2.username
+                  : "Inconnu"}
+              </p>
             </li>
           ))}
         </ul>
