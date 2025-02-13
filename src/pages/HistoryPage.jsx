@@ -1,4 +1,6 @@
 import MatchListPage from "../components/MatchListPage";
+import { isMatchFinished } from "../services/matchService"; // ✅ Ajoute l'import
+
 
 const HistoryPage = () => {
   return (
@@ -7,8 +9,7 @@ const HistoryPage = () => {
       filter={(matches) =>
         matches.filter(
           (match) =>
-            match.winner !== undefined && match.winner !== null ||
-            (match.turns.length > 0 && match.turns.every((turn) => turn.winner === "draw"))
+            isMatchFinished(match)
         )
       }
     />

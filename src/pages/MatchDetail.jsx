@@ -26,7 +26,7 @@ const MatchDetail = () => {
 
       if (event.type === "TURN_ENDED") {
         console.log(`Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`);
-        setCurrentTurn(event.payload.newTurnId);
+        setCurrentTurn(prevTurn => Math.max(prevTurn, event.payload.newTurnId));
         setHistory((prevHistory) => [
           ...prevHistory,
           {
@@ -77,12 +77,12 @@ const MatchDetail = () => {
         }
   
         setMatch(response.data);
-        setCurrentTurn(response.data.turns.length + 1);
+        setCurrentTurn(prevTurn => Math.max(prevTurn, response.data.turns.length + 1));
   
         // Le loader reste au minimum 1s
         setTimeout(() => {
           setLoading(false);
-        }, 1000);
+        }, 500);
   
       } catch (error) {
         console.error("Erreur lors de la récupération du match", error);
