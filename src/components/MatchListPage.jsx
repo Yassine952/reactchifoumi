@@ -28,7 +28,6 @@ const MatchListPage = ({ title, filter, showCreateButton = false }) => {
       const newMatch = await createMatch(token);
       setMatches((prev) => [newMatch, ...prev]); // Ajoute la nouvelle partie
     } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -41,7 +40,6 @@ const MatchListPage = ({ title, filter, showCreateButton = false }) => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">{title}</h1>
-      {error && <p className="text-red-500">{error}</p>}
 
       {showCreateButton && (
         <button
