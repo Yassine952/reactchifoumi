@@ -1,5 +1,5 @@
 import MatchListPage from "../components/MatchListPage";
-import { isMatchFinished } from "../services/matchService"; // ✅ Ajoute l'import
+import { isMatchFinished } from "../services/matchService";
 
 
 const HistoryPage = () => {

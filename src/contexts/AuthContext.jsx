@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }) => {
       const data = await authRegister(username, password);
       setUser({ username });
       setToken(getToken()); // Récupère et stocke le token après inscription
+      notyf.success(`Bienvenue!`);
       return data;
     } catch (error) {
       console.error("Erreur lors de l'inscription :", error.message);
