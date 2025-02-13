@@ -21,10 +21,10 @@ const LoginForm = () => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Connexion</h2>
       <div>
-        <label>Nom d'utilisateur :</label>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Nom d'utilisateur :</label>
         <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -32,15 +32,16 @@ const LoginForm = () => {
         />
       </div>
       <div>
-        <label>Mot de passe :</label>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Mot de passe :</label>
         <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Votre mot de passe"
         />
       </div>
-      <button type="submit">Se connecter</button>
+      <button className='bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded' type="submit">Se connecter</button>
     </form>
   );
 };
