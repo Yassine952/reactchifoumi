@@ -34,7 +34,7 @@ const MatchDetail = () => {
           getMatch(matchId, token)
             .then((data) => {
               setMatch(data);
-              setCurrentTurn(data.turns.length + 1);
+              setCurrentTurn(event.payload.newTurnId);
             })
             .catch((error) => {
               console.error("Erreur lors de la récupération du match", error);
@@ -158,11 +158,11 @@ const MatchDetail = () => {
   const translateMove = (move) => {
     switch (move) {
       case "rock":
-        return "pierre";
+        return "👊";
       case "paper":
-        return "papier";
+        return "📃";
       case "scissors":
-        return "ciseaux";
+        return "✂️";
       default:
         return move;
     }
@@ -171,79 +171,22 @@ const MatchDetail = () => {
   if (!match) return <p>Match introuvable.</p>;
 
   return (
-    <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
-      <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
-      {matchResult && (
-        <motion.p
-          initial={{ opacity: 0, y: -50, scale: 0.5, rotate: -25 }}
-          animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 460, damping: 50 }}
-          className={`text-5xl font-bold mt-2 mb-5 ${
-            matchResult === "VICTOIRE"
-              ? "text-green-500"
-              : matchResult === "DÉFAITE"
-              ? "text-red-500"
-              : matchResult === "ÉGALITÉ"
-              ? "text-gray-500"
-              : ""
-          }`}
-        >
-          {matchResult}
-        </motion.p>
-      )}
-      <p>
-        <strong>Joueur 1 :</strong>{" "}
-        <span className={match.user1 && match.user1.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
-          {match.user1 ? match.user1.username : "En attente"}
-        </span>
-      </p>
-      <p>
-        <strong>Joueur 2 :</strong>{" "}
-        <span className={match.user2 && match.user2.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
-          {match.user2 ? match.user2.username : "En attente"}
-        </span>
-      </p>
-      {match.user2 && !isMatchFinished(match) && (
-        <div className="mt-4">
-          <p className="font-bold">Tour actuel : {currentTurn}</p>
-          <p className="mt-2 mb-5">Fais ton choix :</p>
-          <div className="flex space-x-4">
-            <img
-              src="/images/rock.png"
-              alt="Pierre"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
-              onClick={() => handleMove("rock")}
-            />
-            <img
-              src="/images/paper.png"
-              alt="Papier"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
-              onClick={() => handleMove("paper")}
-            />
-            <img
-              src="/images/scissors.png"
-              alt="Ciseaux"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
-              onClick={() => handleMove("scissors")}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6 text-center">
-        <h3 className="text-lg font-bold">Historique des tours</h3>
+    <div className="flex flex-col lg:flex-row items-start justify-center text-gray-900 lg:space-x-16 mt-8 ml-8 mr-8">
+      {/* Colonne de gauche : Historique des tours */}
+      <div className="w-full lg:w-1/4 rounded-lg mb-6 lg:mb-0">
+        <h3 className="text-xl font-bold mb-5">📁 Historique des tours</h3>
         {!match.user2 ? (
-          <p className="mt-4 text-center text-gray-700">
+          <p className="mt-4 text-gray-700">
             Pas d'adversaire, actualisez la page dans quelques instants, un adversaire va venir.
           </p>
         ) : match.turns.length === 0 ? (
-          <p className="mt-4 text-center text-gray-700">
+          <p className="mt-4 text-gray-700">
             Aucun tour n'a été joué pour le moment.
           </p>
         ) : (
           <ul className="mt-2">
             {match.turns.map((turn, index) => (
-              <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
+              <li key={index} className="border-8 border-white shadow rounded-lg p-4 mb-4 px-28">
                 <p>
                   <strong>Tour {index + 1}</strong>
                 </p>
@@ -258,16 +201,93 @@ const MatchDetail = () => {
                 <p>
                   <strong>Gagnant :</strong>{" "}
                   {turn.winner === "draw"
-                    ? "Égalité"
+                    ? "🤝"
                     : turn.winner === "user1"
-                    ? match.user1.username
+                    ? match.user1.username + " 🏅"
                     : turn.winner === "user2"
-                    ? match.user2.username
+                    ? match.user2.username + " 🏅"
                     : "Inconnu"}
                 </p>
               </li>
             ))}
           </ul>
+        )}
+      </div>
+  
+      {/* Colonne de droite : Contenu principal */}
+      <div className="w-full lg:w-3/4 flex flex-col">
+        <div className="flex items-center justify-between w-full mb-8">
+          <h3 className="text-xl font-bold">🎮 Place au jeu</h3>
+          <p className="text-xl font-bold">
+            {currentTurn > 3 ? "Partie finie" : `Tour actuel : ${currentTurn}`}
+          </p>
+        </div>
+        <h2 className="mb-5">Match ID : {match._id}</h2>
+        {matchResult && (
+          <motion.p
+            initial={{ opacity: 0, y: -50, scale: 0.5, rotate: -25 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 460, damping: 50 }}
+            className={`text-5xl font-bold mt-2 mb-5 ${
+              matchResult === "VICTOIRE"
+                ? "text-green-500 text-center"
+                : matchResult === "DÉFAITE"
+                ? "text-red-500 text-center"
+                : matchResult === "ÉGALITÉ"
+                ? "text-gray-500 text-center"
+                : ""
+            }`}
+          >           
+            {matchResult}
+          </motion.p>
+        )}
+        <div className="flex items-center space-x-4 justify-center">
+          <span
+            className={
+              match.user1 && match.user1.username === localStorage.getItem("username")
+                ? "text-red-500 uppercase font-extrabold leading-none tracking-tight text-5xl dark:text-white"
+                : "text-gray-800 uppercase font-extrabold leading-none tracking-tight text-5xl dark:text-white"
+            }
+          >
+            {match.user1 ? match.user1.username : "En attente"}
+          </span>
+          <span className="bg-blue-500 text-white px-5 py-3 rounded-lg font-extrabold text-lg flex my-16">
+            VS
+          </span>
+          <span
+            className={
+              match.user2 && match.user2.username === localStorage.getItem("username")
+                ? "text-red-500 uppercase font-extrabold leading-none tracking-tight text-5xl dark:text-white"
+                : "text-gray-800 uppercase font-extrabold leading-none tracking-tight text-5xl dark:text-white"
+            }
+          >
+            {match.user2 ? match.user2.username : "En attente"}
+          </span>
+        </div>
+  
+        {match.user2 && !isMatchFinished(match) && (
+          <div className="mt-4">
+            <div className="flex space-x-24 items-center justify-center">
+              <img
+                src="/images/rock.png"
+                alt="Pierre"
+                className="w-24 h-24 cursor-pointer hover:scale-110 transition"
+                onClick={() => handleMove("rock")}
+              />
+              <img
+                src="/images/paper.png"
+                alt="Papier"
+                className="w-24 h-24 cursor-pointer hover:scale-110 transition"
+                onClick={() => handleMove("paper")}
+              />
+              <img
+                src="/images/scissors.png"
+                alt="Ciseaux"
+                className="w-24 h-24 cursor-pointer hover:scale-110 transition"
+                onClick={() => handleMove("scissors")}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
