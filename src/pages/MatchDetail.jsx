@@ -46,13 +46,13 @@ const MatchDetail = () => {
           const winner = event.payload.winner;
           console.log("MATCH TERMINÉ ! Gagnant :", winner);
 
-          if (username === winner) {
-            notyf.success("Victoire !");
-            setMatchResult("VICTOIRE");
-            launchConfetti();
-          } else if (winner === "draw") {
-            notyf.success("Égalité !");
+          if (winner === "draw") {
             setMatchResult("ÉGALITÉ");
+            notyf.success("Égalité !");
+            launchConfetti();
+          } else if (username === winner) {
+            setMatchResult("VICTOIRE");
+            notyf.success("Victoire !");
             launchConfetti();
           } else {
             setMatchResult("DÉFAITE");
@@ -167,7 +167,6 @@ const MatchDetail = () => {
     }
   };
 
-
   if (!match) return <p>Match introuvable.</p>;
 
   return (
@@ -188,9 +187,12 @@ const MatchDetail = () => {
           {matchResult}
         </p>
       )}
-      <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
       <p>
-        <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
+        <strong>Joueur 1 :</strong> {match.user1.username}
+      </p>
+      <p>
+        <strong>Joueur 2 :</strong>{" "}
+        {match.user2 ? match.user2.username : "En attente"}
       </p>
 
       {match.user2 && !isMatchFinished(match) && (
@@ -198,21 +200,21 @@ const MatchDetail = () => {
           <p className="font-bold">Tour actuel : {currentTurn}</p>
           <p className="mt-2 mb-5">Fais ton choix :</p>
           <div className="flex space-x-4">
-            <img 
+            <img
               src="/images/rock.jpg"
-              alt="Pierre" 
+              alt="Pierre"
               className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("rock")}
             />
-            <img 
-              src="/images/paper.jpeg" 
-              alt="Papier" 
+            <img
+              src="/images/paper.jpeg"
+              alt="Papier"
               className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("paper")}
             />
-            <img 
-              src="/images/scissors.jpg" 
-              alt="Ciseaux" 
+            <img
+              src="/images/scissors.jpg"
+              alt="Ciseaux"
               className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("scissors")}
             />
@@ -223,17 +225,14 @@ const MatchDetail = () => {
       <div className="mt-6 text-center">
         <h3 className="text-lg font-bold">Historique des tours</h3>
         {!match.user2 ? (
-          // Si aucun adversaire n'est présent
           <p className="mt-4 text-center text-gray-700">
             Pas d'adversaire, actualisez la page dans quelques instants, un adversaire va venir.
           </p>
         ) : match.turns.length === 0 ? (
-          // Si l'adversaire est présent mais qu'aucun tour n'a encore été joué
           <p className="mt-4 text-center text-gray-700">
             Aucun tour n'a été joué pour le moment.
           </p>
         ) : (
-          // Sinon, on affiche la liste des tours
           <ul className="mt-2">
             {match.turns.map((turn, index) => (
               <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
@@ -263,7 +262,6 @@ const MatchDetail = () => {
           </ul>
         )}
       </div>
-
     </div>
   );
 };
