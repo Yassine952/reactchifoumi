@@ -188,13 +188,17 @@ const MatchDetail = () => {
         </p>
       )}
       <p>
-        <strong>Joueur 1 :</strong> {match.user1.username}
+        <strong>Joueur 1 :</strong>{" "}
+        <span className={match.user1 && match.user1.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
+          {match.user1 ? match.user1.username : "En attente"}
+        </span>
       </p>
       <p>
         <strong>Joueur 2 :</strong>{" "}
-        {match.user2 ? match.user2.username : "En attente"}
+        <span className={match.user2 && match.user2.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
+          {match.user2 ? match.user2.username : "En attente"}
+        </span>
       </p>
-
       {match.user2 && !isMatchFinished(match) && (
         <div className="mt-4">
           <p className="font-bold">Tour actuel : {currentTurn}</p>
