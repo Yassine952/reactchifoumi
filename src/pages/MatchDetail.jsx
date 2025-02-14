@@ -5,6 +5,7 @@ import useSSEListener from "../hooks/useSSEListener";
 import notyf from "../utils/notyf";
 import { launchConfetti } from "../utils/confetti";
 import { isMatchFinished, getMatch } from "../services/matchService";
+import { motion } from "framer-motion";
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -173,7 +174,10 @@ const MatchDetail = () => {
     <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
       <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
       {matchResult && (
-        <p
+        <motion.p
+          initial={{ opacity: 0, y: -50, scale: 0.5, rotate: -25 }}
+          animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 460, damping: 50 }}
           className={`text-5xl font-bold mt-2 mb-5 ${
             matchResult === "VICTOIRE"
               ? "text-green-500"
@@ -185,7 +189,7 @@ const MatchDetail = () => {
           }`}
         >
           {matchResult}
-        </p>
+        </motion.p>
       )}
       <p>
         <strong>Joueur 1 :</strong>{" "}

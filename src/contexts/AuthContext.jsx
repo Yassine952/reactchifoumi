@@ -21,9 +21,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const data = await authLogin(username, password); // Appelle `authService.login`
-      setUser({ username }); // Met à jour l'état utilisateur
-      setToken(getToken()); // Récupère le token depuis localStorage
+      const data = await authLogin(username, password);
+      setUser({ username });
+      setToken(getToken());
       notyf.success(`Bienvenue ${username} !`);
     } catch (error) {
       console.error("Erreur de connexion :", error.message);
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authRegister(username, password);
       setUser({ username });
-      setToken(getToken()); // Récupère et stocke le token après inscription
+      setToken(getToken());
       notyf.success(`Bienvenue ${username}`);
       return data;
     } catch (error) {
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    authLogout(); // Supprime le token du stockage
+    authLogout();
     setToken(null);
     setUser(null);
     notyf.success("Au revoir !");
