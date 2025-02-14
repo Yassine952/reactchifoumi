@@ -196,24 +196,24 @@ const MatchDetail = () => {
       {match.user2 && !isMatchFinished(match) && (
         <div className="mt-4">
           <p className="font-bold">Tour actuel : {currentTurn}</p>
-          <p>Fais ton choix :</p>
+          <p className="mt-2 mb-5">Fais ton choix :</p>
           <div className="flex space-x-4">
             <img 
-              src="https://www.mineraux.fr/wp-content/uploads/2020/12/pierre-meteorite-caracteristiques.jpg" 
+              src="/images/rock.jpg"
               alt="Pierre" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("rock")}
             />
             <img 
-              src="https://www.coquard.fr/wp-content/uploads/911aau-papier-camembert-210x210-emballages-photo1.jpeg" 
+              src="/images/paper.jpeg" 
               alt="Papier" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("paper")}
             />
             <img 
-              src="https://www.10doigts.fr/assets/generics/ciseaux-decolier-droitier-1614.jpg" 
+              src="/images/scissors.jpg" 
               alt="Ciseaux" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("scissors")}
             />
           </div>
@@ -222,31 +222,46 @@ const MatchDetail = () => {
 
       <div className="mt-6 text-center">
         <h3 className="text-lg font-bold">Historique des tours</h3>
-        <ul className="mt-2">
-          {match.turns.map((turn, index) => (
-            <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
-              <p>
-                <strong>Tour {index + 1}</strong>
-              </p>
-              <p>
-                <strong>{match.user1.username}</strong> a joué : <em>{translateMove(turn.user1)}</em>
-              </p>
-              <p>
-                <strong>{match.user2.username}</strong> a joué : <em>{translateMove(turn.user2)}</em>
-              </p>
-              <p>
-                <strong>Gagnant :</strong>{" "}
-                {turn.winner === "draw"
-                  ? "Égalité"
-                  : turn.winner === "user1"
-                  ? match.user1.username
-                  : turn.winner === "user2"
-                  ? match.user2.username
-                  : "Inconnu"}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {!match.user2 ? (
+          // Si aucun adversaire n'est présent
+          <p className="mt-4 text-center text-gray-700">
+            Pas d'adversaire, actualisez la page dans quelques instants, un adversaire va venir.
+          </p>
+        ) : match.turns.length === 0 ? (
+          // Si l'adversaire est présent mais qu'aucun tour n'a encore été joué
+          <p className="mt-4 text-center text-gray-700">
+            Aucun tour n'a été joué pour le moment.
+          </p>
+        ) : (
+          // Sinon, on affiche la liste des tours
+          <ul className="mt-2">
+            {match.turns.map((turn, index) => (
+              <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
+                <p>
+                  <strong>Tour {index + 1}</strong>
+                </p>
+                <p>
+                  <strong>{match.user1.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user1)}</em>
+                </p>
+                <p>
+                  <strong>{match.user2.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user2)}</em>
+                </p>
+                <p>
+                  <strong>Gagnant :</strong>{" "}
+                  {turn.winner === "draw"
+                    ? "Égalité"
+                    : turn.winner === "user1"
+                    ? match.user1.username
+                    : turn.winner === "user2"
+                    ? match.user2.username
+                    : "Inconnu"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
     </div>
