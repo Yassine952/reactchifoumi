@@ -209,21 +209,21 @@ const MatchDetail = () => {
           <p className="mt-2 mb-5">Fais ton choix :</p>
           <div className="flex space-x-4">
             <img
-              src="/images/rock.jpg"
+              src="/images/rock.png"
               alt="Pierre"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
               onClick={() => handleMove("rock")}
             />
             <img
-              src="/images/paper.jpeg"
+              src="/images/paper.png"
               alt="Papier"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
               onClick={() => handleMove("paper")}
             />
             <img
-              src="/images/scissors.jpg"
+              src="/images/scissors.png"
               alt="Ciseaux"
-              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition bg-white p-4"
               onClick={() => handleMove("scissors")}
             />
           </div>
