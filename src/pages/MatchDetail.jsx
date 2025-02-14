@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import useSSEListener from "../hooks/useSSEListener";
 import notyf from "../utils/notyf";
-import { launchConfetti } from '../utils/confetti';
-import { isMatchFinished } from "../services/matchService";
+import { launchConfetti } from "../utils/confetti";
+import { isMatchFinished, getMatch } from "../services/matchService";
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -12,84 +12,98 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
-  const [history, setHistory] = useState([]); 
 
-  // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
-  const handleSSEEvent = useCallback((data) => {
-    console.log("Données reçues via SSE :", data);
-    
-    // S'assurer que data est toujours un tableau
-    const events = Array.isArray(data) ? data : [data];
+  // Ref pour éviter de notifier plusieurs fois la fin du match
+  const matchEndedNotified = useRef(false);
 
-    events.forEach((event) => {
-      console.log("Type d'événement reçu :", event.type);
+  // Callback SSE pour gérer les événements reçus
+  const handleSSEEvent = useCallback(
+    (data) => {
+      console.log("Données reçues via SSE :", data);
 
-      if (event.type === "TURN_ENDED") {
-        console.log(`Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`);
-        setCurrentTurn(prevTurn => Math.max(prevTurn, event.payload.newTurnId));
-        setHistory((prevHistory) => [
-          ...prevHistory,
-          {
-            turnId: event.payload.newTurnId - 1, // Le tour terminé
-            winner: event.payload.winner,
-          },
-        ]);
+      // S'assurer que data est toujours un tableau
+      const events = Array.isArray(data) ? data : [data];
 
-      } else if (event.type === "MATCH_ENDED") {
-        const username = localStorage.getItem("username");
-        const winner = event.payload.winner;
-        console.log("MATCH TERMINÉ ! Gagnant :", winner);
+      events.forEach((event) => {
+        console.log("Type d'événement reçu :", event.type);
 
-        if (username === winner) {
-          notyf.success("Victoire !");
-          launchConfetti();
-        } else if (winner === "draw") {
-          notyf.success("Égalité !");
-          launchConfetti();
-        } else {
-          notyf.error("Vous avez perdu...");
+        if (event.type === "TURN_ENDED") {
+          console.log(
+            `Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`
+          );
+          getMatch(matchId, token)
+            .then((data) => {
+              setMatch(data);
+              setCurrentTurn(data.turns.length + 1);
+            })
+            .catch((error) => {
+              console.error("Erreur lors de la récupération du match", error);
+            });
+        } else if (event.type === "MATCH_ENDED") {
+          if (matchEndedNotified.current) return;
+          matchEndedNotified.current = true; // On marque comme notifié
+
+          const username = localStorage.getItem("username");
+          const winner = event.payload.winner;
+          console.log("MATCH TERMINÉ ! Gagnant :", winner);
+
+          if (username === winner) {
+            notyf.success("Victoire !");
+            launchConfetti();
+          } else if (winner === "draw") {
+            notyf.success("Égalité !");
+            launchConfetti();
+          } else {
+            notyf.error("Vous avez perdu...");
+          }
+
+          // On marque le match comme terminé pour désactiver l'interface
+          setMatch((prevMatch) => ({
+            ...prevMatch,
+            ended: true,
+          }));
         }
-
-        // Marquer le match comme terminé pour désactiver l'interface de jeu
-        setMatch((prevMatch) => ({
-          ...prevMatch,
-          ended: true,
-        }));
-      }
-    });
-  }, []);
+      });
+    },
+    [matchId, token]
+  );
 
   // Définir l'activation de l'écoute SSE : on arrête dès que le match est terminé.
   const isActive = match ? !match.ended : true;
   useSSEListener(matchId, token, handleSSEEvent, isActive);
 
+  // Récupération initiale du match
   useEffect(() => {
     const fetchMatch = async () => {
       try {
-        const response = await axios.get(`http://localhost:3002/matches/${matchId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-  
+        const response = await axios.get(
+          `http://localhost:3002/matches/${matchId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
         console.log("Réponse API :", response.data);
-  
+
         if (!response.data || Object.keys(response.data).length === 0) {
           throw new Error("Match non trouvé !");
         }
-  
+
         setMatch(response.data);
-        setCurrentTurn(prevTurn => Math.max(prevTurn, response.data.turns.length + 1));
-  
-        // Le loader reste au minimum 1s
+        setCurrentTurn((prevTurn) =>
+          Math.max(prevTurn, response.data.turns.length + 1)
+        );
+
+        // Le loader reste affiché au minimum 500ms
         setTimeout(() => {
           setLoading(false);
         }, 500);
-  
       } catch (error) {
         console.error("Erreur lors de la récupération du match", error);
         setLoading(false);
       }
     };
-  
+
     fetchMatch();
   }, [matchId, token]);
 
@@ -107,7 +121,7 @@ const MatchDetail = () => {
         turns: [...prevMatch.turns, { [match.user1.username]: move }],
       }));
     } catch (error) {
-      notyf.error("Ce n'était pas à vous de jouer !")
+      notyf.error("Ce n'était pas à vous de jouer !");
       console.error("Erreur lors de l'envoi du coup", error);
     }
   };
@@ -136,6 +150,21 @@ const MatchDetail = () => {
       </div>
     );
   }
+
+  // Fonction de traduction
+  const translateMove = (move) => {
+    switch (move) {
+      case "rock":
+        return "pierre";
+      case "paper":
+        return "papier";
+      case "scissors":
+        return "ciseaux";
+      default:
+        return move;
+    }
+  };
+
 
   if (!match) return <p>Match introuvable.</p>;
 
@@ -177,9 +206,17 @@ const MatchDetail = () => {
       <div className="mt-6">
         <h3 className="text-lg font-bold">Historique des tours</h3>
         <ul className="mt-2">
-          {history.map((turn, index) => (
+          {match.turns.map((turn, index) => (
             <li key={index} className="p-2 border-b">
-              <p><strong>Tour {turn.turnId}</strong>:</p>
+              <p>
+                <strong>Tour {index + 1}</strong>
+              </p>
+              <p>
+                <strong>{match.user1.username}</strong> a joué : <em>{translateMove(turn.user1)}</em>
+              </p>
+              <p>
+                <strong>{match.user2.username}</strong> a joué : <em>{translateMove(turn.user2)}</em>
+              </p>
               <p>
                 <strong>Gagnant :</strong>{" "}
                 {turn.winner === "draw"
