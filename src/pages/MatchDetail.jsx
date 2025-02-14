@@ -12,8 +12,7 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
-
-  // Ref pour éviter de notifier plusieurs fois la fin du match
+  const [matchResult, setMatchResult] = useState(null);
   const matchEndedNotified = useRef(false);
 
   // Callback SSE pour gérer les événements reçus
@@ -49,11 +48,14 @@ const MatchDetail = () => {
 
           if (username === winner) {
             notyf.success("Victoire !");
+            setMatchResult("VICTOIRE");
             launchConfetti();
           } else if (winner === "draw") {
             notyf.success("Égalité !");
+            setMatchResult("ÉGALITÉ");
             launchConfetti();
           } else {
+            setMatchResult("DÉFAITE");
             notyf.error("Vous avez perdu...");
           }
 
@@ -171,6 +173,21 @@ const MatchDetail = () => {
   return (
     <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
       <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
+      {matchResult && (
+        <p
+          className={`text-5xl font-bold mt-2 mb-5 ${
+            matchResult === "VICTOIRE"
+              ? "text-green-500"
+              : matchResult === "DÉFAITE"
+              ? "text-red-500"
+              : matchResult === "ÉGALITÉ"
+              ? "text-gray-500"
+              : ""
+          }`}
+        >
+          {matchResult}
+        </p>
+      )}
       <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
       <p>
         <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
@@ -203,11 +220,11 @@ const MatchDetail = () => {
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 text-center">
         <h3 className="text-lg font-bold">Historique des tours</h3>
         <ul className="mt-2">
           {match.turns.map((turn, index) => (
-            <li key={index} className="p-2 border-b">
+            <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
               <p>
                 <strong>Tour {index + 1}</strong>
               </p>
