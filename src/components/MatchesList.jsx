@@ -23,7 +23,7 @@ const MatchesList = ({ matches }) => {
           }
 
           return (
-            <div key={match._id} className="border p-4 mb-2 rounded">
+            <div key={match._id} className="bg-white shadow rounded-lg p-4 mb-4">
               <p><strong>ID du match :</strong> {match._id}</p>
               <p><strong>Joueur 1 :</strong> {match.user1?.username || 'Inconnu'}</p>
               <p><strong>Joueur 2 :</strong> {match.user2?.username || 'En attente'}</p>
@@ -39,7 +39,7 @@ const MatchesList = ({ matches }) => {
                 </span>
               </p>
 
-              <div className="mt-3">
+              <div className="mt-4 mb-4">
                 <ButtonLink to={`/matches/${match._id}`} className="mt-2">
                   Voir le match
                 </ButtonLink>

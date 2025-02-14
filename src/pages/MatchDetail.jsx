@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import useSSEListener from "../hooks/useSSEListener";
 import notyf from "../utils/notyf";
-import { launchConfetti } from '../utils/confetti';
-import { isMatchFinished } from "../services/matchService";
+import { launchConfetti } from "../utils/confetti";
+import { isMatchFinished, getMatch } from "../services/matchService";
 
 const MatchDetail = () => {
   const { matchId } = useParams();
@@ -12,84 +12,100 @@ const MatchDetail = () => {
   const [currentTurn, setCurrentTurn] = useState(1);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
-  const [history, setHistory] = useState([]); 
+  const [matchResult, setMatchResult] = useState(null);
+  const matchEndedNotified = useRef(false);
 
-  // On mémorise le callback SSE pour éviter qu'il soit recréé à chaque rendu
-  const handleSSEEvent = useCallback((data) => {
-    console.log("Données reçues via SSE :", data);
-    
-    // S'assurer que data est toujours un tableau
-    const events = Array.isArray(data) ? data : [data];
+  // Callback SSE pour gérer les événements reçus
+  const handleSSEEvent = useCallback(
+    (data) => {
+      console.log("Données reçues via SSE :", data);
 
-    events.forEach((event) => {
-      console.log("Type d'événement reçu :", event.type);
+      // S'assurer que data est toujours un tableau
+      const events = Array.isArray(data) ? data : [data];
 
-      if (event.type === "TURN_ENDED") {
-        console.log(`Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`);
-        setCurrentTurn(prevTurn => Math.max(prevTurn, event.payload.newTurnId));
-        setHistory((prevHistory) => [
-          ...prevHistory,
-          {
-            turnId: event.payload.newTurnId - 1, // Le tour terminé
-            winner: event.payload.winner,
-          },
-        ]);
+      events.forEach((event) => {
+        console.log("Type d'événement reçu :", event.type);
 
-      } else if (event.type === "MATCH_ENDED") {
-        const username = localStorage.getItem("username");
-        const winner = event.payload.winner;
-        console.log("MATCH TERMINÉ ! Gagnant :", winner);
+        if (event.type === "TURN_ENDED") {
+          console.log(
+            `Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`
+          );
+          getMatch(matchId, token)
+            .then((data) => {
+              setMatch(data);
+              setCurrentTurn(data.turns.length + 1);
+            })
+            .catch((error) => {
+              console.error("Erreur lors de la récupération du match", error);
+            });
+        } else if (event.type === "MATCH_ENDED") {
+          if (matchEndedNotified.current) return;
+          matchEndedNotified.current = true; // On marque comme notifié
 
-        if (username === winner) {
-          notyf.success("Victoire !");
-          launchConfetti();
-        } else if (winner === "draw") {
-          notyf.success("Égalité !");
-          launchConfetti();
-        } else {
-          notyf.error("Vous avez perdu...");
+          const username = localStorage.getItem("username");
+          const winner = event.payload.winner;
+          console.log("MATCH TERMINÉ ! Gagnant :", winner);
+
+          if (winner === "draw") {
+            setMatchResult("ÉGALITÉ");
+            notyf.success("Égalité !");
+            launchConfetti();
+          } else if (username === winner) {
+            setMatchResult("VICTOIRE");
+            notyf.success("Victoire !");
+            launchConfetti();
+          } else {
+            setMatchResult("DÉFAITE");
+            notyf.error("Vous avez perdu...");
+          }
+
+          // On marque le match comme terminé pour désactiver l'interface
+          setMatch((prevMatch) => ({
+            ...prevMatch,
+            ended: true,
+          }));
         }
-
-        // Marquer le match comme terminé pour désactiver l'interface de jeu
-        setMatch((prevMatch) => ({
-          ...prevMatch,
-          ended: true,
-        }));
-      }
-    });
-  }, []);
+      });
+    },
+    [matchId, token]
+  );
 
   // Définir l'activation de l'écoute SSE : on arrête dès que le match est terminé.
   const isActive = match ? !match.ended : true;
   useSSEListener(matchId, token, handleSSEEvent, isActive);
 
+  // Récupération initiale du match
   useEffect(() => {
     const fetchMatch = async () => {
       try {
-        const response = await axios.get(`http://localhost:3002/matches/${matchId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-  
+        const response = await axios.get(
+          `http://localhost:3002/matches/${matchId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
         console.log("Réponse API :", response.data);
-  
+
         if (!response.data || Object.keys(response.data).length === 0) {
           throw new Error("Match non trouvé !");
         }
-  
+
         setMatch(response.data);
-        setCurrentTurn(prevTurn => Math.max(prevTurn, response.data.turns.length + 1));
-  
-        // Le loader reste au minimum 1s
+        setCurrentTurn((prevTurn) =>
+          Math.max(prevTurn, response.data.turns.length + 1)
+        );
+
+        // Le loader reste affiché au minimum 500ms
         setTimeout(() => {
           setLoading(false);
         }, 500);
-  
       } catch (error) {
         console.error("Erreur lors de la récupération du match", error);
         setLoading(false);
       }
     };
-  
+
     fetchMatch();
   }, [matchId, token]);
 
@@ -107,7 +123,7 @@ const MatchDetail = () => {
         turns: [...prevMatch.turns, { [match.user1.username]: move }],
       }));
     } catch (error) {
-      notyf.error("Ce n'était pas à vous de jouer !")
+      notyf.error("Ce n'était pas à vous de jouer !");
       console.error("Erreur lors de l'envoi du coup", error);
     }
   };
@@ -137,64 +153,115 @@ const MatchDetail = () => {
     );
   }
 
+  // Fonction de traduction
+  const translateMove = (move) => {
+    switch (move) {
+      case "rock":
+        return "pierre";
+      case "paper":
+        return "papier";
+      case "scissors":
+        return "ciseaux";
+      default:
+        return move;
+    }
+  };
+
   if (!match) return <p>Match introuvable.</p>;
 
   return (
     <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
       <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
-      <p><strong>Joueur 1 :</strong> {match.user1.username}</p>
+      {matchResult && (
+        <p
+          className={`text-5xl font-bold mt-2 mb-5 ${
+            matchResult === "VICTOIRE"
+              ? "text-green-500"
+              : matchResult === "DÉFAITE"
+              ? "text-red-500"
+              : matchResult === "ÉGALITÉ"
+              ? "text-gray-500"
+              : ""
+          }`}
+        >
+          {matchResult}
+        </p>
+      )}
       <p>
-        <strong>Joueur 2 :</strong> {match.user2 ? match.user2.username : "En attente"}
+        <strong>Joueur 1 :</strong> {match.user1.username}
+      </p>
+      <p>
+        <strong>Joueur 2 :</strong>{" "}
+        {match.user2 ? match.user2.username : "En attente"}
       </p>
 
       {match.user2 && !isMatchFinished(match) && (
         <div className="mt-4">
           <p className="font-bold">Tour actuel : {currentTurn}</p>
-          <p>Fais ton choix :</p>
+          <p className="mt-2 mb-5">Fais ton choix :</p>
           <div className="flex space-x-4">
-            <img 
-              src="https://www.mineraux.fr/wp-content/uploads/2020/12/pierre-meteorite-caracteristiques.jpg" 
-              alt="Pierre" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+            <img
+              src="/images/rock.jpg"
+              alt="Pierre"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("rock")}
             />
-            <img 
-              src="https://www.coquard.fr/wp-content/uploads/911aau-papier-camembert-210x210-emballages-photo1.jpeg" 
-              alt="Papier" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+            <img
+              src="/images/paper.jpeg"
+              alt="Papier"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("paper")}
             />
-            <img 
-              src="https://www.10doigts.fr/assets/generics/ciseaux-decolier-droitier-1614.jpg" 
-              alt="Ciseaux" 
-              className="w-20 h-20 cursor-pointer hover:scale-110 transition"
+            <img
+              src="/images/scissors.jpg"
+              alt="Ciseaux"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
               onClick={() => handleMove("scissors")}
             />
           </div>
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 text-center">
         <h3 className="text-lg font-bold">Historique des tours</h3>
-        <ul className="mt-2">
-          {history.map((turn, index) => (
-            <li key={index} className="p-2 border-b">
-              <p><strong>Tour {turn.turnId}</strong>:</p>
-              <p>
-                <strong>Gagnant :</strong>{" "}
-                {turn.winner === "draw"
-                  ? "Égalité"
-                  : turn.winner === "user1"
-                  ? match.user1.username
-                  : turn.winner === "user2"
-                  ? match.user2.username
-                  : "Inconnu"}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {!match.user2 ? (
+          <p className="mt-4 text-center text-gray-700">
+            Pas d'adversaire, actualisez la page dans quelques instants, un adversaire va venir.
+          </p>
+        ) : match.turns.length === 0 ? (
+          <p className="mt-4 text-center text-gray-700">
+            Aucun tour n'a été joué pour le moment.
+          </p>
+        ) : (
+          <ul className="mt-2">
+            {match.turns.map((turn, index) => (
+              <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
+                <p>
+                  <strong>Tour {index + 1}</strong>
+                </p>
+                <p>
+                  <strong>{match.user1.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user1)}</em>
+                </p>
+                <p>
+                  <strong>{match.user2.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user2)}</em>
+                </p>
+                <p>
+                  <strong>Gagnant :</strong>{" "}
+                  {turn.winner === "draw"
+                    ? "Égalité"
+                    : turn.winner === "user1"
+                    ? match.user1.username
+                    : turn.winner === "user2"
+                    ? match.user2.username
+                    : "Inconnu"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-
     </div>
   );
 };
