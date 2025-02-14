@@ -94,7 +94,7 @@ const MatchDetail = () => {
 
         setMatch(response.data);
         setCurrentTurn((prevTurn) =>
-          Math.max(prevTurn, response.data.turns.length + 1)
+          Math.max(prevTurn, response.data.turns.length)
         );
 
         // Le loader reste affiché au minimum 500ms
