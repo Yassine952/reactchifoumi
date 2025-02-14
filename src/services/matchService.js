@@ -1,4 +1,6 @@
 const API_BASE_URL = 'http://localhost:3002'; 
+import notyf from "../utils/notyf";
+import axios from "axios";
 
 export const getMatches = async (token, queryParams) => {
   const query = queryParams ? '?' + new URLSearchParams(queryParams) : '';
@@ -23,7 +25,22 @@ export const createMatch = async (token) => {
   });
   if (!response.ok) {
     const errorData = await response.json();
+    notyf.error(errorData.match);
     throw new Error(errorData.match || 'Erreur lors de la création du match.');
   }
   return response.json();
+};
+
+export const isMatchFinished = (match) => {
+  const maxTurns = 3;
+  if (match.turns.length >= maxTurns) return true;
+};
+
+export const getMatch = async (matchId, token) => {
+  const response = await axios.get(`${API_BASE_URL}/matches/${matchId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
 };

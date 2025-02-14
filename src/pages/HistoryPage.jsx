@@ -1,0 +1,19 @@
+import MatchListPage from "../components/MatchListPage";
+import { isMatchFinished } from "../services/matchService";
+
+
+const HistoryPage = () => {
+  return (
+    <MatchListPage
+      title="Historique des parties"
+      filter={(matches) =>
+        matches.filter(
+          (match) =>
+            isMatchFinished(match)
+        )
+      }
+    />
+  );
+};
+
+export default HistoryPage;
