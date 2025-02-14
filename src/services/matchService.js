@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3002'; 
+const API_BASE_URL = 'https://reactchifoumi-5x54.vercel.app'; 
 import notyf from "../utils/notyf";
 import axios from "axios";
 

@@ -79,7 +79,7 @@ const MatchDetail = () => {
     const fetchMatch = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3002/matches/${matchId}`,
+          `https://reactchifoumi-5x54.vercel.app/matches/${matchId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -112,7 +112,7 @@ const MatchDetail = () => {
   const handleMove = async (move) => {
     try {
       const response = await axios.post(
-        `http://localhost:3002/matches/${matchId}/turns/${currentTurn}`,
+        `https://reactchifoumi-5x54.vercel.app/matches/${matchId}/turns/${currentTurn}`,
         { move },
         { headers: { Authorization: `Bearer ${token}` } }
       );

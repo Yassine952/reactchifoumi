@@ -1,0 +1,2305 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+functions/
+  lib/
+    chifoumi.js
+    jwt.js
+    mongo.js
+    notificationCenter.js
+  middlewares/
+    turnValidator.js
+    verifyJwt.js
+  models/
+    match.js
+    user.js
+  .env
+  .eslintrc.js
+  .firebaserc
+  .gitignore
+  app.js
+  docker-compose.yml
+  index.js
+  package.json
+  rest.http
+  server.js
+public/
+  vite.svg
+src/
+  assets/
+    react.svg
+  components/
+    AuthForm/
+      AuthForm.jsx
+      LoginForm.jsx
+      RegisterForm.jsx
+    ButtonLink.jsx
+    MatchesList.jsx
+    MatchListPage.jsx
+    Navbar.jsx
+    Navlink.jsx
+  contexts/
+    AuthContext.jsx
+  hooks/
+    useSSEListener.js
+  pages/
+    AuthPage.jsx
+    HistoryPage.jsx
+    Home.jsx
+    MatchDetail.jsx
+    MatchesPage.jsx
+  services/
+    authService.js
+    matchService.js
+  utils/
+    axiosInstance.js
+    confetti.js
+    notyf.js
+  App.css
+  App.jsx
+  index.css
+  main.jsx
+.gitignore
+eslint.config.js
+index.html
+package.json
+postcss.config.js
+README.md
+tailwind.config.js
+vite.config.js
+
+================================================================
+Files
+================================================================
+
+================
+File: functions/lib/chifoumi.js
+================
+const checkTurnWinner = (turn) => {
+  if (turn.user1 === "rock" && turn.user2 === "paper") {
+    return "user2";
+  }
+  if (turn.user1 === "paper" && turn.user2 === "rock") {
+    return "user1";
+  }
+  if (turn.user1 === "rock" && turn.user2 === "scissors") {
+    return "user1";
+  }
+  if (turn.user1 === "scissors" && turn.user2 === "rock") {
+    return "user2";
+  }
+  if (turn.user1 === "paper" && turn.user2 === "scissors") {
+    return "user2";
+  }
+  if (turn.user1 === "scissors" && turn.user2 === "paper") {
+    return "user1";
+  }
+  return "draw";
+};
+const checkTurnPlayed = (turn) => {
+  if (turn.user1 && turn.user2) {
+    return true;
+  }
+  return false;
+};
+
+const checkMatchWinner = (match) => {
+  const winner = match.turns.reduce(
+      (acc, turn) => {
+        acc[checkTurnWinner(turn)]++;
+        return acc;
+      },
+      {user1: 0, user2: 0, draw: 0},
+  );
+  return winner.user1 === winner.user2 ?
+    null :
+    match[winner.user1 > winner.user2 ? "user1" : "user2"];
+};
+
+const getLastTurnPlayed = (match) => {
+  return match.turns.reduce((acc, turn, index) => {
+    if (checkTurnPlayed(turn)) return index;
+    return acc;
+  }, -1);
+};
+
+module.exports = {
+  checkTurnWinner,
+  checkTurnPlayed,
+  checkMatchWinner,
+  getLastTurnPlayed,
+};
+
+================
+File: functions/lib/jwt.js
+================
+const jwt = require("jsonwebtoken");
+
+const createToken = async (user) => {
+  const token = await jwt.sign(
+      {
+        _id: user._id,
+        username: user.username,
+      },
+      process.env.SECRET_KEY,
+      {
+        expiresIn: "1y",
+        algorithm: "HS256",
+      },
+  );
+
+  return token;
+};
+
+const verifyToken = async (token) => {
+  const user = await jwt.verify(token, process.env.SECRET_KEY);
+  return user;
+};
+
+module.exports = {
+  createToken,
+  verifyToken,
+};
+
+================
+File: functions/lib/mongo.js
+================
+const Mongoose = require("mongoose");
+
+Mongoose.connect(process.env.MONGO_URL, {
+  useNewUrlParser: true,
+  authSource: "admin",
+  connectTimeoutMS: 500,
+})
+    .then(() => {
+      console.log("Connected to MongoDB");
+    })
+    .catch((err) => {
+      console.log("Error connecting to MongoDB: ", err);
+    });
+
+module.exports = Mongoose.connection;
+
+================
+File: functions/lib/notificationCenter.js
+================
+module.exports = {
+  clients: [],
+  events: [],
+  addClient(client) {
+    this.clients.push(client);
+    const response = client.response;
+    const headers = {
+      "Content-Type": "text/event-stream",
+      "Connection": "keep-alive",
+      "Cache-Control": "no-cache",
+    };
+    response.writeHead(200, headers);
+    const facts = this.events.filter(
+        (event) => event.matchId === client.matchId,
+    );
+    const data = `data: ${JSON.stringify(facts)}\n\n`;
+
+    response.write(data);
+  },
+  removeClient(client) {
+    const index = this.clients.indexOf(client);
+    if (index > -1) {
+      this.clients.splice(index, 1);
+    }
+  },
+  notify(event) {
+    this.events.push(event);
+    this.clients.forEach(
+        (client) =>
+          client.matchId === event.matchId &&
+        client.response.write(`data: ${JSON.stringify(event)}\n\n`),
+    );
+  },
+};
+
+================
+File: functions/middlewares/turnValidator.js
+================
+const {getLastTurnPlayed} = require("../lib/chifoumi");
+const Match = require("../models/match");
+
+module.exports = async (req, res, next) => {
+  const match = await Match.findById(req.params.id);
+  const idTurn = parseInt(req.params.idTurn);
+  if (match.winner !== undefined) {
+    return res.status(400).json({match: "Match already finished"});
+  }
+  if (match.turns.length < idTurn - 1) {
+    return res.status(400).json({turn: "not found"});
+  }
+  const lastTurn = getLastTurnPlayed(match);
+  if (lastTurn + 1 !== idTurn - 1) {
+    return res.status(400).json({turn: "not last"});
+  }
+  if (!["scissors", "rock", "paper"].includes(req.body.move)) {
+    return res.status(400).json({turn: "Invalid move, expected: scissors, rock, paper"});
+  }
+  const turn = match.turns[idTurn - 1] || {};
+  const isPlayer1 = match.user1?._id === req.user._id;
+  const isPlayer2 = match.user2?._id === req.user._id;
+  if ((isPlayer1 && turn.user1) || (isPlayer2 && turn.user2)) {
+    return res.status(400).json({user: "move already given"});
+  }
+  req.match = match;
+  req.turn = turn;
+  next();
+};
+
+================
+File: functions/middlewares/verifyJwt.js
+================
+const {verifyToken} = require("../lib/jwt");
+
+const verifyJwt =
+  (block = true) =>
+    (rq, res, next) => {
+      const header = rq.headers["authorization"] || rq.headers["Authorization"];
+      if (!header && block) {
+        res.sendStatus(401);
+        return;
+      }
+      if (header) {
+        const [type, token] = header.split(/\s+/);
+        if (!/bearer/i.test(type) && block) {
+          return res.sendStatus(401);
+        }
+
+        verifyToken(token)
+            .then((user) => {
+              rq.user = user;
+              next();
+            })
+            .catch(() => (block && res.sendStatus(401)) || next());
+      } else {
+        next();
+      }
+    };
+
+module.exports = verifyJwt;
+
+================
+File: functions/models/match.js
+================
+const Mongoose = require("mongoose");
+
+const MatchSchema = new Mongoose.Schema({
+  user1: {
+    type: Object,
+  },
+  user2: {
+    type: Object,
+  },
+  turns: {
+    type: Array,
+    required: true,
+  },
+  winner: {
+    type: Object,
+  },
+});
+
+const Match = Mongoose.model("Match", MatchSchema);
+
+module.exports = Match;
+
+================
+File: functions/models/user.js
+================
+const Mongoose = require("mongoose");
+
+const UserSchema = new Mongoose.Schema({
+  _id: { type: String, required: true },
+  username: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+});
+
+const User = Mongoose.model("User", UserSchema);
+
+module.exports = User;
+
+================
+File: functions/.env
+================
+PORT=3002
+MONGO_URL=mongodb://root:password@localhost/chifoumi?authSource=admin
+NODE_ENV=dev
+SECRET_KEY=foo
+
+================
+File: functions/.eslintrc.js
+================
+module.exports = {
+  root: true,
+  env: {
+    es6: true,
+    node: true,
+  },
+  parserOptions: {
+    ecmaVersion: 2018,
+  },
+  extends: ["eslint:recommended", "google"],
+  rules: {
+    quotes: ["error", "double"],
+  },
+};
+
+================
+File: functions/.firebaserc
+================
+{
+  "projects": {
+    "default": "chifoumi-82504"
+  }
+}
+
+================
+File: functions/.gitignore
+================
+node_modules
+
+================
+File: functions/app.js
+================
+require("dotenv-flow").config();
+const express = require("express");
+const app = express();
+const cors = require("cors");
+const { v4: uuidv4 } = require("uuid");
+const { checkTurnWinner, checkMatchWinner } = require("./lib/chifoumi");
+const NotificationCenter = require("./lib/notificationCenter");
+const createToken = require("./lib/jwt").createToken;
+const verifyJwt = require("./middlewares/verifyJwt");
+require("./lib/mongo");
+const User = require("./models/user");
+const Match = require("./models/match");
+const turnValidator = require("./middlewares/turnValidator");
+
+app.use(express.json());
+app.use(cors());
+
+app.post("/login", async function (req, res) {
+  try {
+    let user = await User.findOne({
+      username: req.body.username,
+      password: req.body.password,
+    });
+    if (!user) {
+      return res.sendStatus(401);
+    }
+    res.json({ token: await createToken(user) });
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+app.post("/register", async function (req, res) {
+  try {
+    let user = await User.findOne({
+      username: req.body.username,
+    });
+    if (!user) {
+      user = new User({
+        ...req.body,
+        _id: uuidv4(),
+      });
+      user = await user.save();
+      res.status(201).json(user);
+    } else {
+      res.status(409).json({ error: "User already exists" });
+    }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+
+app.post("/matches", verifyJwt(), async function (req, res) {
+  try {
+    let event = {};
+    if (
+      await Match.findOne({
+        "user1._id": req.user._id,
+        user2: null,
+      })
+    ) {
+      return res.status(400).json({ match: "You already have a match" });
+    }
+
+    let match = await Match.findOne({
+      "user1._id": { $ne: req.user._id },
+      user2: null,
+    });
+    if (!match) {
+      match = new Match({
+        user1: req.user,
+        user2: null,
+        turns: [],
+        createdAt: new Date(),
+      });
+      event.type = "PLAYER1_JOIN";
+      event.payload = {
+        user: req.user.username,
+      };
+    } else {
+      match.user2 = req.user;
+      event.type = "PLAYER2_JOIN";
+      event.payload = {
+        user: req.user.username,
+      };
+    }
+    match = await match.save();
+    event.matchId = match._id.valueOf();
+    res.status(201).json(match);
+    NotificationCenter.notify(event);
+    if (match.user2) {
+      event = {
+        type: "NEW_TURN",
+        matchId: match._id.valueOf(),
+        payload: {
+          turnId: 1,
+        },
+      };
+      NotificationCenter.notify(event);
+    }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+app.get("/matches", verifyJwt(), async function (req, res) {
+  try {
+    const { order, itemsPerPage, page, ...criteria } = req.query;
+    const match = await Match.find(
+      {
+        ...criteria,
+        $or: [{ "user1._id": req.user._id }, { "user2._id": req.user._id }],
+      },
+      null,
+      { sort: order, skip: (page - 1) * itemsPerPage, limit: itemsPerPage }
+    );
+    if (match)
+      res.json(
+        match.map((m) => {
+          m.turns = m.turns.map((turn) => {
+            if (!turn.winner) {
+              if (turn.user2 && m.user2._id !== req.user._id) {
+                turn.user2 = "?";
+              }
+              if (turn.user1 && m.user1._id !== req.user._id) {
+                turn.user1 = "?";
+              }
+            }
+            return turn;
+          });
+          return m;
+        })
+      );
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+app.get("/matches/:id", verifyJwt(), async (req, res) => {
+  try {
+    const match = await Match.findOne({
+      _id: req.params.id,
+      $or: [{ "user1._id": req.user._id }, { "user2._id": req.user._id }],
+    });
+    match.turns = match.turns.map((turn) => {
+      if (!turn.winner) {
+        if (turn.user2 && match.user2._id !== req.user._id) {
+          turn.user2 = "?";
+        }
+        if (turn.user1 && match.user1._id !== req.user._id) {
+          turn.user1 = "?";
+        }
+      }
+      return turn;
+    });
+    if (match) res.json(match);
+    else res.sendStatus(404);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+});
+app.post(
+  "/matches/:id/turns/:idTurn",
+  verifyJwt(),
+  turnValidator,
+  async function (req, res) {
+    try {
+      const idTurn = parseInt(req.params.idTurn);
+      const match = req.match;
+      const turn = req.turn;
+      const isPlayer1 = match.user1._id === req.user._id;
+      turn[isPlayer1 ? "user1" : "user2"] = req.body.move;
+      match.turns[idTurn - 1] = turn;
+      if (turn.user1 && turn.user2) {
+        turn.winner = checkTurnWinner(turn);
+      }
+      await match.save();
+      res.sendStatus(202);
+      NotificationCenter.notify({
+        type: isPlayer1 ? "PLAYER1_MOVED" : "PLAYER2_MOVED",
+        matchId: match._id.valueOf(),
+        payload: {
+          turn: idTurn,
+        },
+      });
+      if (turn.user1 && turn.user2) {
+        NotificationCenter.notify({
+          type: "TURN_ENDED",
+          matchId: match._id.valueOf(),
+          payload: {
+            newTurnId: idTurn + 1,
+            winner: checkTurnWinner(turn),
+          },
+        });
+
+        if (match.turns.length === 3) {
+          match.winner = checkMatchWinner(match);
+          await match.save();
+          NotificationCenter.notify({
+            type: "MATCH_ENDED",
+            matchId: match._id.valueOf(),
+            payload: {
+              winner: (match.winner && match.winner.username) || "draw",
+            },
+          });
+        }
+      }
+    } catch (error) {
+      res.status(500).json(error);
+    }
+  }
+);
+
+app.get("/matches/:id/subscribe", verifyJwt(), function (request, response) {
+  try {
+    const clientId = request.user._id;
+
+    const newClient = {
+      id: clientId,
+      matchId: request.params.id,
+      response,
+    };
+
+    NotificationCenter.addClient(newClient);
+
+    request.on("close", () => {
+      console.log(`${clientId} Connection closed`);
+      NotificationCenter.removeClient(newClient);
+    });
+  } catch (error) {
+    response.status(500).json(error);
+  }
+});
+
+module.exports = app;
+
+================
+File: functions/docker-compose.yml
+================
+version: "3.4"
+services:
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - db-data:/data/db
+      
+volumes:
+  db-data: {}
+
+================
+File: functions/index.js
+================
+const functions = require("firebase-functions");
+process.env.MONGO_URL = functions.config().env.mongo_url;
+process.env.SECRET = functions.config().env.secret;
+// // Create and Deploy Your First Cloud Functions
+// // https://firebase.google.com/docs/functions/write-firebase-functions
+//
+const app = require("./app.js");
+console.log(process.env);
+exports.chifoumi = functions.https.onRequest(app);
+
+================
+File: functions/package.json
+================
+{
+  "name": "chifoumi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "dotenv-flow": "^4.0.0",
+    "express": "^4.17.1",
+    "firebase-admin": "^9.2.0",
+    "firebase-functions": "^3.11.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.0.13",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^0.2.0"
+  },
+  "engines": {
+    "node": "14"
+  }
+}
+
+================
+File: functions/rest.http
+================
+### test 2
+POST http://localhost:3002/register
+Content-Type: application/json
+
+{
+  "username": "test2",
+  "password": "test3"
+}
+###
+POST http://localhost:3002/login
+Content-Type: application/json
+
+{
+  "username": "test2",
+  "password": "test3"
+}
+
+### test3
+POST http://localhost:3002/register
+Content-Type: application/json
+
+{
+  "username": "test3",
+  "password": "test3"
+}
+###
+POST http://localhost:3002/login
+Content-Type: application/json
+
+{
+  "username": "test3",
+  "password": "test3"
+}
+
+# username: test2, token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+# username: test3, token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIyOWUzYWY0ZS0zOTBmLTQ4M2UtYWE2Yi1kODEyOGVmMWYyNGUiLCJ1c2VybmFtZSI6InRlc3QzIiwiaWF0IjoxNjk5MDI0NTE1LCJleHAiOjE3MzA1ODIxMTV9.CdA4BVlD8Z3WDkL9Oh8yDUYL_cQ16yfU5WjF84ElIVk
+
+### GET Matches
+GET http://localhost:3002/matches
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+### GET Match test2
+GET http://localhost:3002/matches/65450e294191d0f1e29c0f11
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+### GET Match test3
+GET http://localhost:3002/matches/65450e294191d0f1e29c0f11
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+
+### POST MATCH test3
+POST http://localhost:3002/matches
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIyOWUzYWY0ZS0zOTBmLTQ4M2UtYWE2Yi1kODEyOGVmMWYyNGUiLCJ1c2VybmFtZSI6InRlc3QzIiwiaWF0IjoxNjk5MDI0NTE1LCJleHAiOjE3MzA1ODIxMTV9.CdA4BVlD8Z3WDkL9Oh8yDUYL_cQ16yfU5WjF84ElIVk
+
+### POST MATCH test2
+POST http://localhost:3002/matches
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJmNzE0N2NlYy1iZmZjLTQyZjUtODZmMS1mZjY2MTFiYmQxNjYiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjY5MDgxMzE5LCJleHAiOjE3MDA2Mzg5MTl9.euuCHoRptShkZ4CQV40aH-9vX2mew3gVPKBjj4nPUMY
+
+
+### POST MOVE 1 test
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+{
+  "move": "rock"
+}
+
+### POST MOVE 1 test2
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIyOWUzYWY0ZS0zOTBmLTQ4M2UtYWE2Yi1kODEyOGVmMWYyNGUiLCJ1c2VybmFtZSI6InRlc3QzIiwiaWF0IjoxNjk5MDI0NTE1LCJleHAiOjE3MzA1ODIxMTV9.CdA4BVlD8Z3WDkL9Oh8yDUYL_cQ16yfU5WjF84ElIVk
+
+{
+  "move": "rock"
+}
+
+### POST MOVE 2 test
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/2
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+{
+  "move": "rock"
+}
+
+### POST MOVE 2 test2
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/2
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIyOWUzYWY0ZS0zOTBmLTQ4M2UtYWE2Yi1kODEyOGVmMWYyNGUiLCJ1c2VybmFtZSI6InRlc3QzIiwiaWF0IjoxNjk5MDI0NTE1LCJleHAiOjE3MzA1ODIxMTV9.CdA4BVlD8Z3WDkL9Oh8yDUYL_cQ16yfU5WjF84ElIVk
+
+{
+  "move": "rock"
+}
+
+### POST MOVE 3 test
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/3
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI0OTM0OGM4MS1hZjM4LTQxMjctOGY3Zi1jOGM0MjIyZjA5NDAiLCJ1c2VybmFtZSI6InRlc3QyIiwiaWF0IjoxNjk5MDI0MzQ3LCJleHAiOjE3MzA1ODE5NDd9.vfmBmr8dipCowUGfHhxf-_42FnzLk0U2p5a8drozH28
+
+{
+  "move": "rock"
+}
+
+### POST MOVE 3 test2
+POST http://localhost:3002/matches/65450e294191d0f1e29c0f11/turns/3
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIyOWUzYWY0ZS0zOTBmLTQ4M2UtYWE2Yi1kODEyOGVmMWYyNGUiLCJ1c2VybmFtZSI6InRlc3QzIiwiaWF0IjoxNjk5MDI0NTE1LCJleHAiOjE3MzA1ODIxMTV9.CdA4BVlD8Z3WDkL9Oh8yDUYL_cQ16yfU5WjF84ElIVk
+
+{
+  "move": "rock"
+}
+
+================
+File: functions/server.js
+================
+const app = require("./app");
+
+app.listen(process.env.PORT, () =>
+  console.log("Server started on port " + process.env.PORT),
+);
+
+================
+File: public/vite.svg
+================
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+
+================
+File: src/assets/react.svg
+================
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+
+================
+File: src/components/AuthForm/AuthForm.jsx
+================
+import React, { useState } from 'react';
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
+
+const AuthForm = () => {
+  const [isLogin, setIsLogin] = useState(true);
+
+  return (
+    <div className="auth-container mt-14">
+      <div className="auth-toggle">
+        <div className='mb-5'>
+          <button onClick={() => setIsLogin(true)} className={isLogin ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600 mr-4" : "bg-white text-blue-500 border-blue-500 hover:bg-blue-100 mr-4"}>
+          Connexion
+        </button>
+        <button onClick={() => setIsLogin(false)} className={!isLogin ? "bg-blue-500 text-white border-blue-500 hover:bg-blue-600" : "bg-white text-blue-500 border-blue-500 hover:bg-blue-100"}>
+          Inscription
+        </button>
+        </div>
+      </div>
+      <div className="auth-form">
+        {isLogin ? <LoginForm /> : <RegisterForm />}
+      </div>
+    </div>
+  );
+};
+
+export default AuthForm;
+
+================
+File: src/components/AuthForm/LoginForm.jsx
+================
+import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../contexts/AuthContext';
+import notyf from '../../utils/notyf'; 
+
+const LoginForm = () => {
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await login(username, password);
+      navigate('/matches');
+    } catch (err) {
+      // ne rien faire car dans AuthContext on affiche la notyf
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Nom d'utilisateur :</label>
+        <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Votre nom d'utilisateur"
+        />
+      </div>
+      <div>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Mot de passe :</label>
+        <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Votre mot de passe"
+        />
+      </div>
+      <button className='bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded' type="submit">Se connecter</button>
+    </form>
+  );
+};
+
+export default LoginForm;
+
+================
+File: src/components/AuthForm/RegisterForm.jsx
+================
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+const RegisterForm = () => {
+  const { register } = useContext(AuthContext);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await register(username, password);
+      navigate('/matches');
+    } catch (err) {
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Nom d'utilisateur :</label>
+        <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Votre nom d'utilisateur"
+        />
+      </div>
+      <div>
+        <label className='block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name mb-2'>Mot de passe :</label>
+        <input
+          className='appearance-none block w-full text-gray-700 border border-blue-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white'
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Votre mot de passe"
+        />
+      </div>
+      <button className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded" type="submit">S'inscrire</button>
+    </form>
+  );
+};
+
+export default RegisterForm;
+
+================
+File: src/components/ButtonLink.jsx
+================
+import React from "react";
+import { Link } from "react-router-dom";
+
+const ButtonLink = ({ to, children, className = "" }) => {
+  return (
+    <Link
+      to={to}
+      className={`px-4 py-2 rounded-lg text-white hover:text-white bg-blue-500 hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg ${className}`}
+    >
+      {children}
+    </Link>
+  );
+};
+
+export default ButtonLink;
+
+================
+File: src/components/MatchesList.jsx
+================
+import React, { useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
+import { isMatchFinished } from "../services/matchService";
+import ButtonLink from "./ButtonLink";
+
+const MatchesList = ({ matches }) => {
+  const { user } = useContext(AuthContext); 
+
+  return (
+    <div>
+      {matches.length === 0 ? (
+        <p>Aucune partie trouvée.</p>
+      ) : (
+        matches.map((match) => {
+          let matchResult = "En cours";
+
+          if (isMatchFinished(match)) {
+            if (!match.winner) {
+              matchResult = "Égalité";
+            } else {
+              matchResult = match.winner.username === user.username ? "Gagné" : "Perdu";
+            }
+          }
+
+          return (
+            <div key={match._id} className="bg-white shadow rounded-lg p-4 mb-4">
+              <p><strong>ID du match :</strong> {match._id}</p>
+              <p><strong>Joueur 1 :</strong> {match.user1?.username || 'Inconnu'}</p>
+              <p><strong>Joueur 2 :</strong> {match.user2?.username || 'En attente'}</p>
+
+              <p className="mt-2 font-bold">
+                Statut : <span className={
+                  matchResult === "Gagné" ? "text-green-500" 
+                  : matchResult === "Perdu" ? "text-red-500" 
+                  : matchResult === "Égalité" ? "text-gray-500" 
+                  : "text-blue-500"
+                }>
+                  {matchResult}
+                </span>
+              </p>
+
+              <div className="mt-4 mb-4">
+                <ButtonLink to={`/matches/${match._id}`} className="mt-2">
+                  Voir le match
+                </ButtonLink>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+};
+
+export default MatchesList;
+
+================
+File: src/components/MatchListPage.jsx
+================
+import React, { useEffect, useState, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
+import { getMatches, createMatch } from "../services/matchService";
+import MatchesList from "./MatchesList";
+
+const MatchListPage = ({ title, filter, showCreateButton = false }) => {
+  const { token } = useContext(AuthContext);
+  const [matches, setMatches] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchMatches = async () => {
+    setLoading(true);
+    try {
+      const data = await getMatches(token);
+      setMatches(filter(data));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    }
+  };
+
+  const handleCreateMatch = async () => {
+    try {
+      const newMatch = await createMatch(token);
+      setMatches((prev) => [newMatch, ...prev]); // Ajoute la nouvelle partie
+    } catch (err) {
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchMatches();
+    }
+  }, [token]);
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">{title}</h1>
+
+      {showCreateButton && (
+        <button
+          onClick={handleCreateMatch}
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mb-4"
+        >
+          Créer une partie
+        </button>
+      )}
+
+      {loading ? 
+          <div className="flex items-center justify-center mt-20">
+            <div role="status">
+              <svg
+                aria-hidden="true"
+                className="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                viewBox="0 0 100 101"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                  fill="currentFill"
+                />
+              </svg>
+            </div>
+          </div>
+        : <MatchesList matches={matches} />}
+    </div>
+  );
+};
+
+export default MatchListPage;
+
+================
+File: src/components/Navbar.jsx
+================
+import { useState, useContext } from "react";
+import NavLink from "./Navlink";
+import { AuthContext } from '../contexts/AuthContext'
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom"; // Ajoutez cette ligne
+
+const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { token, logout } = useContext(AuthContext); // Récupération du token et logout
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/"); // Rediriger vers la page d'accueil après déconnexion
+  };
+
+  return (
+    <div>
+      <header className="bg-white dark:bg-gray-900">
+        <nav className="container mx-auto p-6 lg:flex lg:items-center lg:justify-between">
+          <div className="flex items-center justify-between">
+          <Link
+              to="/"
+              className="text-2xl font-bold text-gray-700 hover:text-gray-700 dark:text-white dark:hover:text-gray-300 lg:text-3xl"
+            >
+              CHI FOU MI
+            </Link>
+            {/* Mobile menu button */}
+            <div className="flex lg:hidden">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                type="button"
+                className="text-gray-500 hover:text-gray-600 focus:text-gray-600 focus:outline-none dark:text-gray-200 dark:hover:text-gray-400 dark:focus:text-gray-400"
+                aria-label="toggle menu"
+              >
+                {isOpen ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h16M4 16h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Menu */}
+          <div
+            className={`absolute inset-x-0 z-20 w-full bg-white px-6 py-4 shadow-md transition-all duration-300 ease-in-out dark:bg-gray-900 lg:relative lg:top-0 lg:mt-0 lg:flex lg:w-auto lg:translate-x-0 lg:items-center lg:bg-transparent lg:p-0 lg:opacity-100 lg:shadow-none lg:dark:bg-transparent ${
+              isOpen ? "translate-x-0 opacity-100" : "opacity-0 -translate-x-full"
+            }`}
+          >
+            <div className="flex flex-col space-y-4 lg:mt-0 lg:flex-row lg:space-y-0">
+            {/* Affichage conditionnel des boutons Login / Logout */}
+            {!token ? (
+              <NavLink to="/auth">Login</NavLink>
+            ) : (
+              <>
+                <NavLink to="/history">Mon historique</NavLink>
+                <NavLink to="/matches">Mes parties</NavLink>
+                <NavLink to="/" onClick={handleLogout}>Logout</NavLink>
+              </>
+            )}
+          </div>
+          </div>
+        </nav>
+      </header>
+    </div>
+  );
+};
+
+export default Navbar;
+
+================
+File: src/components/Navlink.jsx
+================
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+const NavLink = ({ to, onClick, children }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(); // Exécuter l'action si `onClick` est fourni (ex: logout)
+    }
+    if (to) {
+      navigate(to); // Rediriger si `to` est fourni
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="text-gray-700 hover:text-gray-900 lg:mx-6 border-b-2 border-transparent hover:bg-gray-200"
+    >
+      {children}
+    </button>
+  );
+};
+
+export default NavLink;
+
+================
+File: src/contexts/AuthContext.jsx
+================
+import React, { createContext, useState, useEffect } from 'react';
+import { login as authLogin, getToken, register as authRegister, logout as authLogout, getUsername } from "../services/authService";
+import notyf from "../../src/utils/notyf"; // Import de Notyf
+
+
+export const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null); 
+  const [token, setToken] = useState(getToken()); 
+
+  // Charger l'utilisateur si un token est déjà présent
+  useEffect(() => {
+    const savedToken = getToken();
+    const savedUsername = getUsername();
+    if (savedToken && savedUsername) {
+      setToken(savedToken);
+      setUser({ username: savedUsername });
+    }
+  }, []);
+
+  const login = async (username, password) => {
+    try {
+      const data = await authLogin(username, password); // Appelle `authService.login`
+      setUser({ username }); // Met à jour l'état utilisateur
+      setToken(getToken()); // Récupère le token depuis localStorage
+      notyf.success(`Bienvenue ${username} !`);
+    } catch (error) {
+      console.error("Erreur de connexion :", error.message);
+      notyf.error("Échec de la connexion");
+      throw error;
+    }
+  };
+
+  const register = async (username, password) => {
+    try {
+      const data = await authRegister(username, password);
+      setUser({ username });
+      setToken(getToken()); // Récupère et stocke le token après inscription
+      notyf.success(`Bienvenue ${username}`);
+      return data;
+    } catch (error) {
+      console.error("Erreur lors de l'inscription :", error.message);
+      notyf.error(error.message)
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    authLogout(); // Supprime le token du stockage
+    setToken(null);
+    setUser(null);
+    notyf.success("Au revoir !");
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+================
+File: src/hooks/useSSEListener.js
+================
+import { useEffect, useRef } from "react";
+import { EventSourcePolyfill } from "event-source-polyfill";
+
+/**
+ * Hook d'écoute des événements SSE.
+ * @param {string} matchId - L'ID du match.
+ * @param {string} token - Le token d'authentification.
+ * @param {Function} onEvent - Callback appelé dès qu'un événement est reçu.
+ * @param {boolean} active - Si false, le hook ne crée pas (ou recrée) la connexion SSE.
+ */
+const useSSEListener = (matchId, token, onEvent, active = true) => {
+  const eventSourceRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) { // Si le match est terminé, ne rien faire.
+      return;
+    }
+    if (!matchId || !token) return;
+
+    const eventSource = new EventSourcePolyfill(
+      `http://localhost:3002/matches/${matchId}/subscribe`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      let eventData;
+      try {
+        eventData = JSON.parse(event.data);
+      } catch (error) {
+        console.error("Erreur lors du parsing des données SSE :", error);
+        return;
+      }
+
+      // Appel du callback avec les données reçues
+      if (onEvent) {
+        onEvent(eventData);
+      }
+
+      // Si un événement MATCH_ENDED est détecté, fermer la connexion
+      if (Array.isArray(eventData)) {
+        if (eventData.some((ev) => ev.type === "MATCH_ENDED")) {
+          console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté dans un tableau.");
+          eventSource.close();
+        }
+      } else if (eventData && eventData.type === "MATCH_ENDED") {
+        console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté.");
+        eventSource.close();
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("Erreur SSE :", error);
+      eventSource.close();
+    };
+
+    return () => {
+      console.log("Fermeture de la connexion SSE (nettoyage)");
+      eventSource.close();
+    };
+  }, [matchId, token, onEvent, active]);
+
+  return null;
+};
+
+export default useSSEListener;
+
+================
+File: src/pages/AuthPage.jsx
+================
+import React from 'react';
+import AuthForm from '../components/AuthForm/AuthForm';
+import notyf from "../utils/notyf";
+
+const AuthPage = () => {
+  return (
+    <div className="auth-page flex flex-col items-center justify-center mt-16 text-gray-900"> 
+      <h1 className='mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl dark:text-white'>Bienvenue sur l'application Chifoumi</h1>
+      <AuthForm />
+    </div>
+  );
+};
+
+export default AuthPage;
+
+================
+File: src/pages/HistoryPage.jsx
+================
+import MatchListPage from "../components/MatchListPage";
+import { isMatchFinished } from "../services/matchService";
+
+
+const HistoryPage = () => {
+  return (
+    <MatchListPage
+      title="Historique des parties"
+      filter={(matches) =>
+        matches.filter(
+          (match) =>
+            isMatchFinished(match)
+        )
+      }
+    />
+  );
+};
+
+export default HistoryPage;
+
+================
+File: src/pages/Home.jsx
+================
+import React from "react";
+
+const Home = () => {
+  return (
+    <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
+      <h1 className="text-5xl font-bold mb-4">CHI FOU MI</h1>
+      <p className="text-lg text-gray-600 text-center max-w-md">
+        Bienvenue sur Chi Fou Mi ! Un jeu en ligne rapide et amusant. Défiez vos amis et montrez qui est le maître du pierre-feuille-ciseaux !
+      </p>
+    </div>
+  );
+};
+
+export default Home;
+
+================
+File: src/pages/MatchDetail.jsx
+================
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import useSSEListener from "../hooks/useSSEListener";
+import notyf from "../utils/notyf";
+import { launchConfetti } from "../utils/confetti";
+import { isMatchFinished, getMatch } from "../services/matchService";
+
+const MatchDetail = () => {
+  const { matchId } = useParams();
+  const [match, setMatch] = useState(null);
+  const [currentTurn, setCurrentTurn] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
+  const [matchResult, setMatchResult] = useState(null);
+  const matchEndedNotified = useRef(false);
+
+  // Callback SSE pour gérer les événements reçus
+  const handleSSEEvent = useCallback(
+    (data) => {
+      console.log("Données reçues via SSE :", data);
+
+      // S'assurer que data est toujours un tableau
+      const events = Array.isArray(data) ? data : [data];
+
+      events.forEach((event) => {
+        console.log("Type d'événement reçu :", event.type);
+
+        if (event.type === "TURN_ENDED") {
+          console.log(
+            `Tour ${event.payload.newTurnId - 1} terminé, gagnant: ${event.payload.winner}`
+          );
+          getMatch(matchId, token)
+            .then((data) => {
+              setMatch(data);
+              setCurrentTurn(data.turns.length + 1);
+            })
+            .catch((error) => {
+              console.error("Erreur lors de la récupération du match", error);
+            });
+        } else if (event.type === "MATCH_ENDED") {
+          if (matchEndedNotified.current) return;
+          matchEndedNotified.current = true; // On marque comme notifié
+
+          const username = localStorage.getItem("username");
+          const winner = event.payload.winner;
+          console.log("MATCH TERMINÉ ! Gagnant :", winner);
+
+          if (winner === "draw") {
+            setMatchResult("ÉGALITÉ");
+            notyf.success("Égalité !");
+            launchConfetti();
+          } else if (username === winner) {
+            setMatchResult("VICTOIRE");
+            notyf.success("Victoire !");
+            launchConfetti();
+          } else {
+            setMatchResult("DÉFAITE");
+            notyf.error("Vous avez perdu...");
+          }
+
+          // On marque le match comme terminé pour désactiver l'interface
+          setMatch((prevMatch) => ({
+            ...prevMatch,
+            ended: true,
+          }));
+        }
+      });
+    },
+    [matchId, token]
+  );
+
+  // Définir l'activation de l'écoute SSE : on arrête dès que le match est terminé.
+  const isActive = match ? !match.ended : true;
+  useSSEListener(matchId, token, handleSSEEvent, isActive);
+
+  // Récupération initiale du match
+  useEffect(() => {
+    const fetchMatch = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:3002/matches/${matchId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        console.log("Réponse API :", response.data);
+
+        if (!response.data || Object.keys(response.data).length === 0) {
+          throw new Error("Match non trouvé !");
+        }
+
+        setMatch(response.data);
+        setCurrentTurn((prevTurn) =>
+          Math.max(prevTurn, response.data.turns.length + 1)
+        );
+
+        // Le loader reste affiché au minimum 500ms
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
+      } catch (error) {
+        console.error("Erreur lors de la récupération du match", error);
+        setLoading(false);
+      }
+    };
+
+    fetchMatch();
+  }, [matchId, token]);
+
+  const handleMove = async (move) => {
+    try {
+      const response = await axios.post(
+        `http://localhost:3002/matches/${matchId}/turns/${currentTurn}`,
+        { move },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("Coup joué :", response.data);
+      setMatch((prevMatch) => ({
+        ...prevMatch,
+        turns: [...prevMatch.turns, { [match.user1.username]: move }],
+      }));
+    } catch (error) {
+      notyf.error("Ce n'était pas à vous de jouer !");
+      console.error("Erreur lors de l'envoi du coup", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center mt-20">
+        <div role="status">
+          <svg
+            aria-hidden="true"
+            className="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+            viewBox="0 0 100 101"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+              fill="currentColor"
+            />
+            <path
+              d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+              fill="currentFill"
+            />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+
+  // Fonction de traduction
+  const translateMove = (move) => {
+    switch (move) {
+      case "rock":
+        return "pierre";
+      case "paper":
+        return "papier";
+      case "scissors":
+        return "ciseaux";
+      default:
+        return move;
+    }
+  };
+
+  if (!match) return <p>Match introuvable.</p>;
+
+  return (
+    <div className="flex flex-col items-center justify-center mt-16 text-gray-900">
+      <h2 className="text-xl font-bold mb-5">Match ID : {match._id}</h2>
+      {matchResult && (
+        <p
+          className={`text-5xl font-bold mt-2 mb-5 ${
+            matchResult === "VICTOIRE"
+              ? "text-green-500"
+              : matchResult === "DÉFAITE"
+              ? "text-red-500"
+              : matchResult === "ÉGALITÉ"
+              ? "text-gray-500"
+              : ""
+          }`}
+        >
+          {matchResult}
+        </p>
+      )}
+      <p>
+        <strong>Joueur 1 :</strong>{" "}
+        <span className={match.user1 && match.user1.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
+          {match.user1 ? match.user1.username : "En attente"}
+        </span>
+      </p>
+      <p>
+        <strong>Joueur 2 :</strong>{" "}
+        <span className={match.user2 && match.user2.username === localStorage.getItem("username") ? "text-red-500 font-bold text-decoration-line: underline" : ""}>
+          {match.user2 ? match.user2.username : "En attente"}
+        </span>
+      </p>
+      {match.user2 && !isMatchFinished(match) && (
+        <div className="mt-4">
+          <p className="font-bold">Tour actuel : {currentTurn}</p>
+          <p className="mt-2 mb-5">Fais ton choix :</p>
+          <div className="flex space-x-4">
+            <img
+              src="/images/rock.jpg"
+              alt="Pierre"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("rock")}
+            />
+            <img
+              src="/images/paper.jpeg"
+              alt="Papier"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("paper")}
+            />
+            <img
+              src="/images/scissors.jpg"
+              alt="Ciseaux"
+              className="w-40 h-40 rounded-lg cursor-pointer hover:scale-110 transition"
+              onClick={() => handleMove("scissors")}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 text-center">
+        <h3 className="text-lg font-bold">Historique des tours</h3>
+        {!match.user2 ? (
+          <p className="mt-4 text-center text-gray-700">
+            Pas d'adversaire, actualisez la page dans quelques instants, un adversaire va venir.
+          </p>
+        ) : match.turns.length === 0 ? (
+          <p className="mt-4 text-center text-gray-700">
+            Aucun tour n'a été joué pour le moment.
+          </p>
+        ) : (
+          <ul className="mt-2">
+            {match.turns.map((turn, index) => (
+              <li key={index} className="bg-white shadow rounded-lg p-4 mb-4 px-28">
+                <p>
+                  <strong>Tour {index + 1}</strong>
+                </p>
+                <p>
+                  <strong>{match.user1.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user1)}</em>
+                </p>
+                <p>
+                  <strong>{match.user2.username}</strong> a joué :{" "}
+                  <em>{translateMove(turn.user2)}</em>
+                </p>
+                <p>
+                  <strong>Gagnant :</strong>{" "}
+                  {turn.winner === "draw"
+                    ? "Égalité"
+                    : turn.winner === "user1"
+                    ? match.user1.username
+                    : turn.winner === "user2"
+                    ? match.user2.username
+                    : "Inconnu"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MatchDetail;
+
+================
+File: src/pages/MatchesPage.jsx
+================
+import MatchListPage from "../components/MatchListPage";
+import { isMatchFinished } from "../services/matchService"; // ✅ Ajoute l'import
+
+const MatchesPage = () => {
+  return (
+    <MatchListPage
+      title="Liste des parties en cours"
+      showCreateButton={true}
+      filter={(matches) =>
+        matches.filter(
+          (match) =>
+            !isMatchFinished(match)
+        )
+      }
+    />
+  );
+};
+
+export default MatchesPage;
+
+================
+File: src/services/authService.js
+================
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:3002';
+
+// Fonction pour gérer le login
+export const login = async (username, password) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/login`, {
+      username,
+      password
+    });
+
+    const { token } = response.data;
+
+    if (token) {
+      localStorage.setItem('token', token); // On stocke le token JWT dans le local storage
+      localStorage.setItem('username', username);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Échec de la connexion', error);
+    throw new Error('Échec de la connexion');
+  }
+};
+
+// Fonction pour s'enregistrer
+export const register = async (username, password) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/register`, {
+      username,
+      password
+    });
+
+    // Après inscription, on appelle directement la fonction login pour se co automatiquement
+    return await login(username, password);
+  } catch (error) {
+    console.error('Échec de l’inscription', error);
+    throw new Error('Échec de l’inscription');
+  }
+};
+
+// Fonction pour récupérer le token stocké
+export const getToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Fonction pour récupérer le username stocké
+export const getUsername = () => {
+  return localStorage.getItem('username');
+};
+
+// Fonction pour déconnexion (supprime le token)
+export const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username'); 
+  console.log('Déconnecté, token supprimé');
+};
+
+================
+File: src/services/matchService.js
+================
+const API_BASE_URL = 'http://localhost:3002'; 
+import notyf from "../utils/notyf";
+import axios from "axios";
+
+export const getMatches = async (token, queryParams) => {
+  const query = queryParams ? '?' + new URLSearchParams(queryParams) : '';
+  const response = await fetch(`${API_BASE_URL}/matches${query}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Erreur lors de la récupération des parties.');
+  }
+  return response.json();
+};
+
+export const createMatch = async (token) => {
+  const response = await fetch(`${API_BASE_URL}/matches`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    notyf.error(errorData.match);
+    throw new Error(errorData.match || 'Erreur lors de la création du match.');
+  }
+  return response.json();
+};
+
+export const isMatchFinished = (match) => {
+  const maxTurns = 3;
+  if (match.turns.length >= maxTurns) return true;
+};
+
+export const getMatch = async (matchId, token) => {
+  const response = await axios.get(`${API_BASE_URL}/matches/${matchId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
+================
+File: src/utils/axiosInstance.js
+================
+import axios from 'axios';
+
+const axiosInstance = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export default axiosInstance;
+
+================
+File: src/utils/confetti.js
+================
+import confetti from 'canvas-confetti';
+
+export const launchConfetti = () => {
+  confetti({
+    particleCount: 150,
+    spread: 170,
+    origin: { y: 0.6 },
+  });
+};
+
+================
+File: src/utils/notyf.js
+================
+import { Notyf } from 'notyf';
+import 'notyf/notyf.min.css';
+
+const notyf = new Notyf({
+  duration: 3000,
+  position: {
+    x: 'right',
+    y: 'bottom',
+  },
+  ripple: true,
+  dismissible: true,
+  types: [
+    {
+      type: 'success',
+      background: '#3b82f6',
+      icon: {
+        className: 'fas fa-check',
+        tagName: 'i',
+      },
+    },
+    {
+      type: 'error',
+      background: 'red',
+      icon: {
+        className: 'fas fa-times',
+        tagName: 'i',
+      },
+    },
+  ],
+});
+
+export default notyf;
+
+================
+File: src/App.css
+================
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+================
+File: src/App.jsx
+================
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AuthPage from './pages/AuthPage';
+import MatchesPage from './pages/MatchesPage';
+import { AuthProvider } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
+import Home from "./pages/Home";
+import MatchDetail from "./pages/MatchDetail";
+import HistoryPage from "./pages/HistoryPage";
+
+function App() {
+  return (
+    <AuthProvider>
+      <div className='bg-gray-100 min-h-screen'>
+        <Router>
+          <Navbar></Navbar>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/matches" element={<MatchesPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/matches/:matchId" element={<MatchDetail />} />
+          </Routes>
+        </Router>
+      </div>
+    </AuthProvider>
+  );
+}
+
+export default App;
+
+================
+File: src/index.css
+================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+================
+File: src/main.jsx
+================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+================
+File: .gitignore
+================
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+firebase.json
+
+================
+File: eslint.config.js
+================
+import js from '@eslint/js'
+import globals from 'globals'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+
+export default [
+  { ignores: ['dist'] },
+  {
+    files: ['**/*.{js,jsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    settings: { react: { version: '18.3' } },
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...react.configs['jsx-runtime'].rules,
+      ...reactHooks.configs.recommended.rules,
+      'react/jsx-no-target-blank': 'off',
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+    },
+  },
+]
+
+================
+File: index.html
+================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+================
+File: package.json
+================
+{
+  "name": "mon-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "canvas-confetti": "^1.9.3",
+    "event-source-polyfill": "^1.0.31",
+    "notyf": "^3.10.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.19.0",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "globals": "^15.14.0",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.3.5",
+    "vite": "^6.1.0"
+  }
+}
+
+================
+File: postcss.config.js
+================
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+================
+File: README.md
+================
+pour lancer le front :
+
+npm install npm run dev
+
+pour lancer le back cd functions docker-compose up -d npm install npm run dev
+
+================
+File: tailwind.config.js
+================
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+================
+File: vite.config.js
+================
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+
+
+
+================================================================
+End of Codebase
+================================================================
