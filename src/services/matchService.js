@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://chifoumi.kmarques.dev/'; 
+const API_BASE_URL = 'https://chifoumi.kmarques.dev'; 
 import notyf from "../utils/notyf";
 import axios from "axios";
 
