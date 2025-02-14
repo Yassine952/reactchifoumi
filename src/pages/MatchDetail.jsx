@@ -80,7 +80,7 @@ const MatchDetail = () => {
     const fetchMatch = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3002/matches/${matchId}`,
+          `https://chifoumi.kmarques.dev/matches/${matchId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -113,7 +113,7 @@ const MatchDetail = () => {
   const handleMove = async (move) => {
     try {
       const response = await axios.post(
-        `http://localhost:3002/matches/${matchId}/turns/${currentTurn}`,
+        `https://chifoumi.kmarques.dev/matches/${matchId}/turns/${currentTurn}`,
         { move },
         { headers: { Authorization: `Bearer ${token}` } }
       );
