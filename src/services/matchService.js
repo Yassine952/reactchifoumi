@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://reactchifoumi-5x54.vercel.app'; 
+const API_BASE_URL = 'https://chifoumi.kmarques.dev/'; 
 import notyf from "../utils/notyf";
 import axios from "axios";
 

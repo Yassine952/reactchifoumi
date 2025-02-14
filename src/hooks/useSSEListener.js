@@ -18,7 +18,7 @@ const useSSEListener = (matchId, token, onEvent, active = true) => {
     if (!matchId || !token) return;
 
     const eventSource = new EventSourcePolyfill(
-      `https://reactchifoumi-5x54.vercel.app/matches/${matchId}/subscribe`,
+      `https://chifoumi.kmarques.dev/matches/${matchId}/subscribe`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }

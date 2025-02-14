@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://reactchifoumi-5x54.vercel.app';
+const API_BASE_URL = 'https://chifoumi.kmarques.dev/';
 
 // Fonction pour gérer le login
 export const login = async (username, password) => {
