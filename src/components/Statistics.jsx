@@ -10,19 +10,23 @@ const Statistics = () => {
     const fetchStatistics = async () => {
       try {
         const matches = await getMatches(token);
-        // Filtrer uniquement les matchs terminés
+        // Ne garder que les matchs terminés (au moins 3 tours)
         const finishedMatches = matches.filter(match => isMatchFinished(match));
         const currentUser = localStorage.getItem("username");
         
-        // Calculer les statistiques
+        // Calcul des statistiques
         const wins = finishedMatches.filter(
           match => match.winner && match.winner.username === currentUser
         ).length;
+        // Considérer un match nul si winner === "draw" OU si winner n'est pas défini
         const draws = finishedMatches.filter(
-          match => match.winner === "draw"
+          match => !match.winner || match.winner === "draw"
         ).length;
         const losses = finishedMatches.filter(
-          match => match.winner && match.winner.username !== currentUser && match.winner !== "draw"
+          match =>
+            match.winner &&
+            match.winner.username !== currentUser &&
+            match.winner !== "draw"
         ).length;
         
         setStats({
