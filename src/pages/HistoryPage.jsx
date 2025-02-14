@@ -4,6 +4,9 @@ import { isMatchFinished } from "../services/matchService";
 
 const HistoryPage = () => {
   return (
+    <>
+    
+    <Statistics />
     <MatchListPage
       title="Historique des parties"
       filter={(matches) =>
@@ -13,6 +16,8 @@ const HistoryPage = () => {
         )
       }
     />
+    </>
+    
   );
 };
 
