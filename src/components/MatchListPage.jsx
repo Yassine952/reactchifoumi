@@ -26,7 +26,7 @@ const MatchListPage = ({ title, filter, showCreateButton = false }) => {
   const handleCreateMatch = async () => {
     try {
       const newMatch = await createMatch(token);
-      setMatches((prev) => [newMatch, ...prev]); // Ajoute la nouvelle partie
+      setMatches((prev) => [newMatch, ...prev]);
     } catch (err) {
     }
   };

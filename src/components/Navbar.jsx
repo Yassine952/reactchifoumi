@@ -2,16 +2,16 @@ import { useState, useContext } from "react";
 import NavLink from "./Navlink";
 import { AuthContext } from '../contexts/AuthContext'
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom"; // Ajoutez cette ligne
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { token, logout } = useContext(AuthContext); // Récupération du token et logout
+  const { token, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/"); // Rediriger vers la page d'accueil après déconnexion
+    navigate("/");
   };
 
   return (
@@ -25,7 +25,6 @@ const Navbar = () => {
             >
               CHI FOU MI
             </Link>
-            {/* Mobile menu button */}
             <div className="flex lg:hidden">
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -64,14 +63,12 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Mobile Menu */}
           <div
             className={`absolute inset-x-0 z-20 w-full bg-white px-6 py-4 shadow-md transition-all duration-300 ease-in-out dark:bg-gray-900 lg:relative lg:top-0 lg:mt-0 lg:flex lg:w-auto lg:translate-x-0 lg:items-center lg:bg-transparent lg:p-0 lg:opacity-100 lg:shadow-none lg:dark:bg-transparent ${
               isOpen ? "translate-x-0 opacity-100" : "opacity-0 -translate-x-full"
             }`}
           >
             <div className="flex flex-col space-y-4 lg:mt-0 lg:flex-row lg:space-y-0">
-            {/* Affichage conditionnel des boutons Login / Logout */}
             {!token ? (
               <NavLink to="/auth">Login</NavLink>
             ) : (

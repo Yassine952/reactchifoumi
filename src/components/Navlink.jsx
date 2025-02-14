@@ -6,10 +6,10 @@ const NavLink = ({ to, onClick, children }) => {
 
   const handleClick = () => {
     if (onClick) {
-      onClick(); // Exécuter l'action si `onClick` est fourni (ex: logout)
+      onClick();
     }
     if (to) {
-      navigate(to); // Rediriger si `to` est fourni
+      navigate(to);
     }
   };
 

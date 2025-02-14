@@ -16,12 +16,10 @@ const MatchDetail = () => {
   const [matchResult, setMatchResult] = useState(null);
   const matchEndedNotified = useRef(false);
 
-  // Callback SSE pour gérer les événements reçus
   const handleSSEEvent = useCallback(
     (data) => {
       console.log("Données reçues via SSE :", data);
 
-      // S'assurer que data est toujours un tableau
       const events = Array.isArray(data) ? data : [data];
 
       events.forEach((event) => {
@@ -41,7 +39,7 @@ const MatchDetail = () => {
             });
         } else if (event.type === "MATCH_ENDED") {
           if (matchEndedNotified.current) return;
-          matchEndedNotified.current = true; // On marque comme notifié
+          matchEndedNotified.current = true;
 
           const username = localStorage.getItem("username");
           const winner = event.payload.winner;
@@ -59,8 +57,6 @@ const MatchDetail = () => {
             setMatchResult("DÉFAITE");
             notyf.error("Vous avez perdu...");
           }
-
-          // On marque le match comme terminé pour désactiver l'interface
           setMatch((prevMatch) => ({
             ...prevMatch,
             ended: true,
@@ -71,11 +67,9 @@ const MatchDetail = () => {
     [matchId, token]
   );
 
-  // Définir l'activation de l'écoute SSE : on arrête dès que le match est terminé.
   const isActive = match ? !match.ended : true;
   useSSEListener(matchId, token, handleSSEEvent, isActive);
 
-  // Récupération initiale du match
   useEffect(() => {
     const fetchMatch = async () => {
       try {
@@ -97,7 +91,6 @@ const MatchDetail = () => {
           Math.max(prevTurn, response.data.turns.length)
         );
 
-        // Le loader reste affiché au minimum 500ms
         setTimeout(() => {
           setLoading(false);
         }, 500);
@@ -154,7 +147,6 @@ const MatchDetail = () => {
     );
   }
 
-  // Fonction de traduction
   const translateMove = (move) => {
     switch (move) {
       case "rock":
@@ -172,7 +164,6 @@ const MatchDetail = () => {
 
   return (
     <div className="flex flex-col lg:flex-row items-start justify-center text-gray-900 lg:space-x-16 mt-8 ml-8 mr-8">
-      {/* Colonne de gauche : Historique des tours */}
       <div className="w-full lg:w-1/4 rounded-lg mb-6 lg:mb-0">
         <h3 className="text-xl font-bold mb-5">📁 Historique des tours</h3>
         {!match.user2 ? (
@@ -214,7 +205,6 @@ const MatchDetail = () => {
         )}
       </div>
   
-      {/* Colonne de droite : Contenu principal */}
       <div className="w-full lg:w-3/4 flex flex-col">
         <div className="flex items-center justify-between w-full mb-8">
           <h3 className="text-xl font-bold">🎮 Place au jeu</h3>
