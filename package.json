@@ -13,6 +13,7 @@
     "axios": "^1.7.9",
     "canvas-confetti": "^1.9.3",
     "event-source-polyfill": "^1.0.31",
+    "framer-motion": "^12.4.2",
     "notyf": "^3.10.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
