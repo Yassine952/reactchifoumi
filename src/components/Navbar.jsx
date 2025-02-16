@@ -11,7 +11,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/"); 
   };
 
   return (
@@ -69,12 +69,13 @@ const Navbar = () => {
             }`}
           >
             <div className="flex flex-col space-y-4 lg:mt-0 lg:flex-row lg:space-y-0">
+
             {!token ? (
               <NavLink to="/auth">Login</NavLink>
             ) : (
               <>
                 <NavLink to="/history">Mon historique</NavLink>
-                <NavLink to="/matches">Mes parties</NavLink>
+                <NavLink to="/matches">Mes parties en cours</NavLink>
                 <NavLink to="/" onClick={handleLogout}>Logout</NavLink>
               </>
             )}

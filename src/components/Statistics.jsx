@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { getMatches, isMatchFinished } from "../services/matchService";
+import { div } from "framer-motion/client";
 
 const Statistics = () => {
   const { token } = useContext(AuthContext);
@@ -13,6 +14,8 @@ const Statistics = () => {
         const finishedMatches = matches.filter(match => isMatchFinished(match));
         const currentUser = localStorage.getItem("username");
         
+        // Calcul des statistiques
+
         const wins = finishedMatches.filter(
           match => match.winner && match.winner.username === currentUser
         ).length;
@@ -41,12 +44,14 @@ const Statistics = () => {
   }, [token]);
   
   return (
-    <div className="statistics-container p-4 bg-white shadow rounded-lg my-4">
-      <h2 className="text-xl font-bold mb-4">Statistiques des parties jouées</h2>
-      <p><strong>Parties jouées :</strong> {stats.total}</p>
-      <p><strong>Victoires :</strong> {stats.wins}</p>
-      <p><strong>Défaites :</strong> {stats.losses}</p>
-      <p><strong>Égalités :</strong> {stats.draws}</p>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">📊 Statistiques des parties jouées</h1>
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <p><strong>Parties jouées :</strong> {stats.total}</p>
+        <p><strong>Victoires :</strong> {stats.wins}</p>
+        <p><strong>Défaites :</strong> {stats.losses}</p>
+        <p><strong>Égalités :</strong> {stats.draws}</p>
+      </div>
     </div>
   );
 };

@@ -9,7 +9,7 @@ const HistoryPage = () => {
     
     <Statistics />
     <MatchListPage
-      title="Historique des parties"
+      title="📋 Historique des parties"
       filter={(matches) =>
         matches.filter(
           (match) =>
