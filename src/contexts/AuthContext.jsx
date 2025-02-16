@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { login as authLogin, getToken, register as authRegister, logout as authLogout, getUsername } from "../services/authService";
-import notyf from "../../src/utils/notyf"; // Import de Notyf
+import notyf from "../../src/utils/notyf";
 
 
 export const AuthContext = createContext();
@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); 
   const [token, setToken] = useState(getToken()); 
 
-  // Charger l'utilisateur si un token est déjà présent
   useEffect(() => {
     const savedToken = getToken();
     const savedUsername = getUsername();
