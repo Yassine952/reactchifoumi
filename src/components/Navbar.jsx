@@ -25,7 +25,6 @@ const Navbar = () => {
             >
               CHI FOU MI
             </Link>
-            {/* Mobile menu button */}
             <div className="flex lg:hidden">
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -64,7 +63,6 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Mobile Menu */}
           <div
             className={`absolute inset-x-0 z-20 w-full bg-white px-6 py-4 shadow-md transition-all duration-300 ease-in-out dark:bg-gray-900 lg:relative lg:top-0 lg:mt-0 lg:flex lg:w-auto lg:translate-x-0 lg:items-center lg:bg-transparent lg:p-0 lg:opacity-100 lg:shadow-none lg:dark:bg-transparent ${
               isOpen ? "translate-x-0 opacity-100" : "opacity-0 -translate-x-full"

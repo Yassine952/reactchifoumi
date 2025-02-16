@@ -15,7 +15,6 @@ const LoginForm = () => {
       await login(username, password);
       navigate('/matches');
     } catch (err) {
-      // ne rien faire car dans AuthContext on affiche la notyf
     }
   };
 

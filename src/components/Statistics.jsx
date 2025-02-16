@@ -11,19 +11,22 @@ const Statistics = () => {
     const fetchStatistics = async () => {
       try {
         const matches = await getMatches(token);
-        // Filtrer uniquement les matchs terminés
         const finishedMatches = matches.filter(match => isMatchFinished(match));
         const currentUser = localStorage.getItem("username");
         
         // Calcul des statistiques
+
         const wins = finishedMatches.filter(
           match => match.winner && match.winner.username === currentUser
         ).length;
         const draws = finishedMatches.filter(
-          match => match.winner === "draw"
+          match => !match.winner || match.winner === "draw"
         ).length;
         const losses = finishedMatches.filter(
-          match => match.winner && match.winner.username !== currentUser && match.winner !== "draw"
+          match =>
+            match.winner &&
+            match.winner.username !== currentUser &&
+            match.winner !== "draw"
         ).length;
         
         setStats({
