@@ -42,11 +42,9 @@ const useSSEListener = (matchId, token, onEvent, active = true) => {
       // Si un événement MATCH_ENDED est détecté, fermer la connexion
       if (Array.isArray(eventData)) {
         if (eventData.some((ev) => ev.type === "MATCH_ENDED")) {
-          console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté dans un tableau.");
           eventSource.close();
         }
       } else if (eventData && eventData.type === "MATCH_ENDED") {
-        console.log("Fermeture de la connexion SSE car MATCH_ENDED détecté.");
         eventSource.close();
       }
     };
@@ -57,7 +55,6 @@ const useSSEListener = (matchId, token, onEvent, active = true) => {
     };
 
     return () => {
-      console.log("Fermeture de la connexion SSE (nettoyage)");
       eventSource.close();
     };
   }, [matchId, token, onEvent, active]);

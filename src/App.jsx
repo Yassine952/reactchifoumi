@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import Home from "./pages/Home";
 import MatchDetail from "./pages/MatchDetail";
 import HistoryPage from "./pages/HistoryPage";
+import 'flowbite';
 
 function App() {
   return (

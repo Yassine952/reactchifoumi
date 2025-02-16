@@ -54,5 +54,4 @@ export const getUsername = () => {
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('username'); 
-  console.log('Déconnecté, token supprimé');
 };
